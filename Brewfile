@@ -16,6 +16,8 @@ brew "yabai"
 brew "skhd"
 # Github CLI
 brew "gh"
+# Rust
+brew "rustup-init"
 
 # Fonts
 cask "font-space-mono"
