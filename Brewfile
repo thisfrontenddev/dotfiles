@@ -2,10 +2,12 @@ tap "homebrew/bundle"
 tap "homebrew/cask-fonts"
 tap "koekeishiya/formulae"
 
+# Cross-shell prompt written in Rust
+brew "starship"
 # Clone of cat with syntax highlighting and Git integration
 brew "bat"
 # Modern replacement for `ls`
-brew "exa"
+brew "eza"
 # Terminal multiplexer
 brew "tmux"
 # Window manager
