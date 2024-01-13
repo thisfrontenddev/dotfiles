@@ -8,6 +8,8 @@ brew "starship"
 brew "bat"
 # Modern replacement for `ls`
 brew "eza"
+# Simplified and community-driven man pages
+brew "tldr"
 # Terminal multiplexer
 brew "tmux"
 # Window manager
