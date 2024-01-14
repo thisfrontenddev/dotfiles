@@ -20,6 +20,8 @@ brew "skhd"
 brew "gh"
 # Rust
 brew "rustup-init"
+# Node version manager written in rust
+brew "fnm"
 
 # Fonts
 cask "font-space-mono"
