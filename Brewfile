@@ -4,23 +4,23 @@ tap "koekeishiya/formulae"
 
 # Cross-shell prompt written in Rust
 brew "starship"
-# Clone of cat with syntax highlighting and Git integration
+# Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
-# Modern replacement for `ls`
+# Modern, maintained replacement for ls
 brew "eza"
 # Simplified and community-driven man pages
 brew "tldr"
 # Terminal multiplexer
 brew "tmux"
-# Window manager
+# A tiling window manager for macOS based on binary space partitioning
 brew "yabai"
-# Shortcut manager
+# Simple hotkey-daemon for macOS
 brew "skhd"
 # Github CLI
 brew "gh"
-# Rust
+# Rust toolchain installer
 brew "rustup-init"
-# Node version manager written in rust
+# Fast and simple node version manager written in Rust
 brew "fnm"
 
 # Fonts
@@ -35,14 +35,18 @@ cask "firefox"
 cask "google-chrome"
 
 # Terminal emulators
-cask "alacritty"
+cask "alacritty" # GPU-accelerated terminal emulator
 cask "iterm2"
+ 
+# Virtualization
+cask "docker"
 
 # IDE
 cask "visual-studio-code"
 
 # UI/UX
 cask "figma"
+cask "spline"
 
 # Note taking
 cask "obsidian"
@@ -57,17 +61,21 @@ cask "keycastr"
 
 # Comms
 cask "discord"
+cask "whatsapp"
 
 # Security / 2FA
 cask "authy"
-cask "little-snitch"
-cask "micro-snitch"
+cask "little-snitch" # Host-based application firewall
+cask "micro-snitch" # Monitors and reports any microphone and camera activity
 
 # Setapp - Software subscription
 cask "setapp"
 
+# Media
+cask "iina"
+
 # Utilities
-cask "keyboardcleantool"
+cask "keyboardcleantool" 
 cask "appcleaner"
-cask "mediamate"
-cask "spacelauncher"
+cask "mediamate" # UI replacement for volume, brightness and now playing controls
+cask "spacelauncher" # App launcher/switcher 
