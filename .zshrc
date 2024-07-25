@@ -1,5 +1,14 @@
-eval "$(starship init zsh)"
-eval "$(fnm env --use-on-cd)"
+if ! (which starship > /dev/null); then
+    echo "Starship not installed, skipping initialization."
+else
+    eval "$(starship init zsh)"
+fi
+
+if ! (which fnm > /dev/null); then
+    echo "fnm not installed, skipping initialization."
+else
+    eval "$(fnm env --use-on-cd)"
+fi
 
 alias gf="git fetch"
 alias grb="git rebase"

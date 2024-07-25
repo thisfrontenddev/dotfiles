@@ -1,5 +1,4 @@
 tap "homebrew/bundle"
-tap "homebrew/cask-fonts"
 tap "koekeishiya/formulae"
 
 # Cross-shell prompt written in Rust
@@ -19,7 +18,7 @@ brew "skhd"
 # Github CLI
 brew "gh"
 # Rust toolchain installer
-brew "rustup-init"
+brew "rustup"
 # Fast and simple node version manager written in Rust
 brew "fnm"
 
