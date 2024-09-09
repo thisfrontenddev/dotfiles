@@ -57,7 +57,7 @@ chmod ug+x ./setup.sh
 - `yabai`, the window manager I use, will need some extra setup steps for all of it's features to work. Most of them will do, but it's worth remembering.
 
 ## Todos
-
+- [ ] Setup a work/personal profile system so it will install the right apps depending on context
 - [ ] Create a simple script that'll automate the getting started steps
 - [ ] Find `defaults` for MacOS that'll help me customize some deeply nested/protected settings such as Accessibility without breaking the OS's stability
 - [ ] Some of those `defaults` will also need system events being sent in order to make them effective without rebooting
