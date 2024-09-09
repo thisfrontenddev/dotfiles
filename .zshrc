@@ -25,9 +25,18 @@ alias gp="git push"
 alias gfgrb="git fetch && git rebase"
 alias gs="git stash"
 alias gsp="git stash pop"
+alias grs="git restore"
 
 alias ll="eza --git --long --group --icons=auto --group-directories-first --all"
 alias config="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
 alias zconfig="code ~/.zshrc"
 
 PATH=~/.console-ninja/.bin:$PATH
+
+# pnpm
+export PNPM_HOME="/Users/null/Library/pnpm"
+case ":$PATH:" in
+*":$PNPM_HOME:"*) ;;
+*) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end

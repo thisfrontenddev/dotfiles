@@ -21,6 +21,8 @@ brew "gh"
 brew "rustup"
 # Fast and simple node version manager written in Rust
 brew "fnm"
+# Modern replacement for `grep`
+brew "ripgrep"
 
 # Fonts
 cask "font-space-mono"
@@ -41,7 +43,11 @@ cask "iterm2"
 cask "docker"
 
 # IDE
+brew "neovim"
 cask "visual-studio-code"
+
+# Docker
+cask "docker"
 
 # UI/UX
 cask "figma"
