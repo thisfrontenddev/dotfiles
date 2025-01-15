@@ -23,6 +23,8 @@ brew "rustup"
 brew "fnm"
 # Modern replacement for `grep`
 brew "ripgrep"
+# Modern system monitoring CLI
+brew "btop"
 
 # Fonts
 cask "font-space-mono"
@@ -38,6 +40,7 @@ cask "google-chrome"
 # Terminal emulators
 cask "alacritty" # GPU-accelerated terminal emulator
 cask "iterm2"
+cask "ghostty"
  
 # Virtualization
 cask "docker"
@@ -80,6 +83,7 @@ cask "setapp"
 cask "iina"
 
 # Utilities
+cask "numi" 
 cask "keyboardcleantool" 
 cask "appcleaner"
 cask "mediamate" # UI replacement for volume, brightness and now playing controls
