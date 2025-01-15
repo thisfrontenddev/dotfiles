@@ -1,6 +1,6 @@
 live_config_reload = true
 
-import = ["~/.config/alacritty/themes/github_dark_high_contrast.toml"]
+import = ["~/.config/alacritty/themes/ayu_dark.toml"]
 
 [font]
 size = 16

@@ -38,10 +38,9 @@ cask "firefox"
 cask "google-chrome"
 
 # Terminal emulators
-cask "alacritty" # GPU-accelerated terminal emulator
 cask "iterm2"
 cask "ghostty"
- 
+
 # Virtualization
 cask "docker"
 
@@ -64,15 +63,15 @@ cask "notion"
 cask "raycast"
 
 # Streaming / screencasting
-cask "obs"
-cask "keycastr"
+cask "obs" # Video recording and streaming
+cask "keycastr" # Show keystrokes on screen
 
 # Comms
 cask "discord"
 cask "whatsapp"
 
 # Security / 2FA
-cask "authy"
+cask "authy" # 2FA
 cask "little-snitch" # Host-based application firewall
 cask "micro-snitch" # Monitors and reports any microphone and camera activity
 
@@ -80,11 +79,12 @@ cask "micro-snitch" # Monitors and reports any microphone and camera activity
 cask "setapp"
 
 # Media
-cask "iina"
+cask "iina" # Video player
+cask "shottr" # Screenshot tool
 
 # Utilities
-cask "numi" 
-cask "keyboardcleantool" 
-cask "appcleaner"
+cask "appcleaner" # App uninstaller
+cask "keyboardcleantool" # Keyboard cleaner utility
 cask "mediamate" # UI replacement for volume, brightness and now playing controls
-cask "spacelauncher" # App launcher/switcher 
+cask "numi" # Calculator
+cask "spacelauncher" # App launcher/switcher

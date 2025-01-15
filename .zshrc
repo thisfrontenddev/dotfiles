@@ -26,6 +26,8 @@ alias gfgrb="git fetch && git rebase"
 alias gs="git stash"
 alias gsp="git stash pop"
 alias grs="git restore"
+alias please="git push --force-with-lease"
+alias again="git commit --amend --no-edit"
 
 alias ll="eza --git --long --group --icons=auto --group-directories-first --all"
 alias config="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
