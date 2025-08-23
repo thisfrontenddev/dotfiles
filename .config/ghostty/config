@@ -1,22 +1,22 @@
-theme = ayu
-#theme = carbonfox
-#theme = everblush
+theme = "catppuccin-mocha"
 
 cursor-style = block
 
-adjust-cell-height = 10%
-command = /bin/zsh -c "tmux new -A -s work"
+adjust-cell-height = 15%
+#command = /bin/zsh -c "tmux new -A -s work"
 copy-on-select = true
 font-size = 16
+font-family = "JetBrainsMonoNL NFM Regular"
 font-thicken = true
 font-feature = -calt
 font-feature = -liga
 font-feature = -dlig
+minimum-contrast = 3
 mouse-hide-while-typing = true
 window-padding-y = 0
 window-padding-x = 10
 window-padding-color = extend
-#window-padding-balance = true
+window-padding-balance = true
 window-save-state = always
 
 # To delete from the current position to the start of the line

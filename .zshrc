@@ -12,6 +12,19 @@ fi
 
 . /opt/homebrew/opt/asdf/libexec/asdf.sh
 
+# Add function directory to fpath
+fpath=(~/.config/zsh/functions $fpath)
+
+# Autoload the function
+autoload -Uz convert-images
+
+# Add aliases separately since they can't be autoloaded
+alias jpg2avif='convert-images jpg avif'
+alias png2avif='convert-images png avif'
+alias jpg2webp='convert-images jpg webp'
+
+EDITOR=/opt/homebrew/bin/nvim
+
 alias g="git"
 alias gb="git branch"
 alias gf="git fetch"
@@ -30,8 +43,18 @@ alias please="git push --force-with-lease"
 alias again="git commit --amend --no-edit"
 
 alias ll="eza --git --long --group --icons=auto --group-directories-first --all"
-alias config="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
-alias zconfig="code ~/.zshrc"
+alias dot="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
+alias zdot="$EDITOR ~/.zshrc"
+
+alias defaultnode="fnm use system"
+
+# Create a file and its parent directories if they don't exist
+# Usage: mktouch /path/to/file.txt
+mktouch() {
+  for file in "$@"; do
+    mkdir -p "$(dirname "$file")" && touch "$file"
+  done
+}
 
 PATH=~/.console-ninja/.bin:$PATH
 

@@ -26,6 +26,8 @@ brew "fnm"
 brew "fzf"
 # GitHub CLI
 brew "gh"
+# Image conversion tool
+brew "imagemagick"
 # Simple terminal UI for git commands
 brew "lazygit"
 # Node.js
@@ -43,7 +45,7 @@ brew "tldr"
 # Terminal multiplexer
 brew "tmux"
 # File watcher
-brew "watchman"
+brew "watchman" 
 
 # AI Clients
 cask "claude"
@@ -111,6 +113,7 @@ cask "obs" # Video recording and streaming
 
 # Utilities
 cask "aerospace" # Tiling window manager
+cask "avifquicklook" # Avif format quicklook extension
 cask "appcleaner" # App uninstaller
 cask "caffeine" # Prevents your Mac from automatically going to sleep - Helpful for builds
 cask "keyboardcleantool" # Disable keyboard when cleaning the mac
