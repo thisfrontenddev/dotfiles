@@ -75,8 +75,12 @@ cask "font-space-mono"
 cask "font-space-mono-nerd-font"
 
 # IDE
+cask "cursor"
 brew "neovim"
 cask "visual-studio-code"
+
+# Mail
+cask "notion-mail"
 
 # Media
 cask "iina" # Video player
