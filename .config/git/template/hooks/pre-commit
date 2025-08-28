@@ -1,0 +1,47 @@
+#!/bin/sh
+# Simple pre-commit hook that prevents common mistakes
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check for files that are too large (>50MB)
+#echo "Checking for large files..."
+large_files=$(find . -name '.git' -prune -o -type f -size +50M -print)
+if [ -n "$large_files" ]; then
+    echo "${RED}Error: Large files detected (>50MB):${NC}"
+    echo "$large_files"
+    echo "Consider using Git LFS for large files."
+    exit 1
+fi
+
+# Check for potential secrets or sensitive data
+#echo "Checking for potential secrets..."
+if git diff --cached --name-only | xargs grep -l -E -i "(password|secret|key|token|api_key)" 2>/dev/null; then
+    echo "${YELLOW}Warning: Files contain potential secrets.${NC}"
+    echo "Please review the following files before committing:"
+    git diff --cached --name-only | xargs grep -l -E -i "(password|secret|key|token|api_key)"
+    echo ""
+    echo "To bypass this check, use: git commit --no-verify"
+    exit 1
+fi
+
+# Check for TODO/FIXME comments in staged files
+#echo "Checking for TODO/FIXME comments..."
+todos=$(git diff --cached --name-only | xargs grep -n -E "(TODO|FIXME|XXX|HACK)" 2>/dev/null || true)
+if [ -n "$todos" ]; then
+    echo "${YELLOW}Info: Found TODO/FIXME comments in staged files:${NC}"
+    echo "$todos"
+fi
+
+# Check for merge conflict markers
+#echo "Checking for merge conflict markers..."
+if git diff --cached --check; then
+    #echo "Pre-commit checks passed ✓"
+else
+    echo "${RED}Error: Merge conflict markers found!${NC}"
+    exit 1
+fi
+
+#echo "Pre-commit hook completed successfully."

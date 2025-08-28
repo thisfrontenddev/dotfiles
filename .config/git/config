@@ -1,0 +1,52 @@
+[credential "https://github.com"]
+	helper =
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[user]
+	name = Eric Martin
+	email = eric.martin@hey.com
+[init]
+	defaultBranch = main
+	templateDir = ~/.config/git/template
+[core]
+	editor = cursor --wait
+	excludesfile = ~/.config/git/ignore
+	autocrlf = input     # Handle line endings properly on cross-platform
+	pager = less -FRX    # Better pager behavior
+[pull]
+	rebase = true        # Cleaner history with rebase instead of merge
+[push]
+	default = simple     # Only push current branch to same-named remote
+	autoSetupRemote = true  # Automatically set up remote tracking
+[merge]
+	conflictstyle = diff3  # Show common ancestor in merge conflicts
+	ff = false           # Always create merge commit for feature branches
+[rebase]
+	autosquash = true    # Auto-squash fixup! commits
+	autostash = true     # Stash changes before rebase
+[diff]
+	colorMoved = default # Highlight moved lines in diffs
+	algorithm = histogram # Better diff algorithm
+[status]
+	showUntrackedFiles = all
+[branch]
+	sort = -committerdate  # Sort branches by most recent
+[tag]
+	sort = -version:refname  # Sort tags by version
+[alias]
+	# Short status
+	s = status --short --branch
+	# Pretty log
+	lg = log --oneline --graph --decorate --all
+	# Show branches with commit info
+	br = branch -vv
+	# Undo last commit (keep changes)
+	undo = reset HEAD~1
+	# Quick commit
+	cm = commit -m
+	# Show what would be pushed
+	dry = push --dry-run
+	# Clean merged branches
+	clean-merged = "!git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d"

@@ -1,0 +1,78 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+*.gz
+*.tar
+
+# Environment and secrets
+.env
+.env.local
+.env.*
+*.pem
+*.key
+id_rsa*
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.pytest_cache/
+.coverage
+.env
+venv/
+env/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+target/
+*.class
+*.o
+*.exe
+
+# Package manager files (often auto-generated)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+Pipfile.lock
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
