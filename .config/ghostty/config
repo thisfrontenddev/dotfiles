@@ -1,4 +1,4 @@
-theme = "catppuccin-mocha"
+theme = "molokai"
 
 cursor-style = block
 
