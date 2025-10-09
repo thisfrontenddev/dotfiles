@@ -1,7 +1,8 @@
-theme = "molokai"
+theme = "ayu"
 
 cursor-style = block
 
+macos-titlebar-style = transparent
 adjust-cell-height = 15%
 #command = /bin/zsh -c "tmux new -A -s work"
 copy-on-select = true
@@ -25,6 +26,16 @@ keybind = super+backspace=esc:w
 # TMUX integration considering that my leader key is ctrl + b
 
 # Go to the N window in tmux in tmux it is Ctrl+b+number
+keybind = cmd+digit_1=unbind
+keybind = cmd+digit_2=unbind
+keybind = cmd+digit_3=unbind
+keybind = cmd+digit_4=unbind
+keybind = cmd+digit_5=unbind
+keybind = cmd+digit_6=unbind
+keybind = cmd+digit_7=unbind
+keybind = cmd+digit_8=unbind
+keybind = cmd+digit_9=unbind
+keybind = super+one=text:\x02\x31
 keybind = super+one=text:\x02\x31
 keybind = super+two=text:\x02\x32
 keybind = super+three=text:\x02\x33
