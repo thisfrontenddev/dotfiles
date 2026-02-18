@@ -50,3 +50,13 @@
 	dry = push --dry-run
 	# Clean merged branches
 	clean-merged = "!git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d"
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+# Conditional includes for work repositories
+# Any repo inside ~/work/ will use the work-specific config
+[includeIf "gitdir:~/work/goldbroker/"]
+	path = ~/.config/git/config-work

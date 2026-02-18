@@ -2,87 +2,81 @@
 
 function finder_defaults() {
   echo "Setting Finder defaults..."
-
-  # Show file extensions
-  defaults write NSGlobalDomain "AppleShowAllExtensions" -bool "true"
-
-  # Show hidden files
-  defaults write com.apple.finder "AppleShowAllFiles" -bool "false"
-
-  # Keep folders on top when sorting by name
-  defaults write com.apple.finder "_FXSortFoldersFirst" -bool "true"
-
-  # Search the current folder by default
-  defaults write com.apple.finder "FXDefaultSearchScope" -string "SCcf"
-
-  # Remove delay when hovering toolbar title
-  defaults write NSGlobalDomain "NSToolbarTitleViewRolloverDelay" -float "0"
-
+  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+  defaults write com.apple.finder AppleShowAllFiles -bool false
+  defaults write com.apple.finder _FXSortFoldersFirst -bool true
+  defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+  defaults write NSGlobalDomain NSToolbarTitleViewRolloverDelay -float 0
+  defaults write com.apple.finder ShowPathbar -bool true
+  defaults write com.apple.finder ShowStatusBar -bool true
+  defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
+  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
   killall Finder
 }
 
 function dock_defaults() {
   echo "Setting Dock defaults..."
-
-  # Dock autohides
-  defaults write com.apple.dock "autohide" -bool "true"
-  # Dock shows instantaneously
-  defaults write com.apple.dock "autohide-delay" -float "0"
-  # Dock autohide instantaneously
-  defaults write com.apple.dock "autohide-time-modifier" -float "0"
-  # Show recent applications
-  defaults write com.apple.dock "show-recents" -bool "false"
+  defaults write com.apple.dock autohide -bool true
+  defaults write com.apple.dock autohide-delay -float 0
+  defaults write com.apple.dock autohide-time-modifier -float 0
+  defaults write com.apple.dock show-recents -bool false
+  defaults write com.apple.dock tilesize -int 16
+  defaults write com.apple.dock minimize-to-application -bool true
+  defaults write com.apple.dock launchanim -bool false
+  defaults write com.apple.dock mru-spaces -bool false
+  defaults write com.apple.dock expose-animation-duration -float 0.12
   killall Dock
 }
 
 function screenshot_defaults() {
   echo "Setting screenshot defaults..."
-
-  # Set screenshots directory to ~/Screenshots
   mkdir -p ~/Screenshots
-  defaults write com.apple.screencapture "location" -string "~/Screenshots"
-
-  # Don't show thumbnail when taking screenshot
-  defaults write com.apple.screencapture "show-thumbnail" -bool "false"
-
-  # Set screenshot format to jpg
-  defaults write com.apple.screencapture "type" -string "jpg"
-
+  defaults write com.apple.screencapture location -string "~/Screenshots"
+  defaults write com.apple.screencapture show-thumbnail -bool false
+  defaults write com.apple.screencapture type -string "jpg"
+  defaults write com.apple.screencapture disable-shadow -bool true
   killall SystemUIServer
 }
 
 function music_defaults() {
   echo "Setting music defaults..."
-  # Don't display notification when a new song starts in Music.app
-  defaults write com.apple.Music "userWantsPlaybackNotifications" -bool "false"
+  defaults write com.apple.Music userWantsPlaybackNotifications -bool false
 }
 
 function keyboard_defaults() {
   echo "Setting keyboard defaults..."
-
-  # Fast initial key repeat -> normal minimum is 15 (225 ms)
   defaults write -g InitialKeyRepeat -int 10
-  
-  # Fast key repeat -> normal minimum is 2 (30 ms)
   defaults write -g KeyRepeat -int 1
+  defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
+}
 
-  # Disable key repeat for most applications
-  # defaults write NSGlobalDomain "ApplePressAndHoldEnabled" -bool "true"
+function trackpad_defaults() {
+  echo "Setting trackpad defaults..."
+  defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+  defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+}
 
-  # Enable key repeat for some applications
-  # App ID can be found with :
-  # osascript -e 'id of app "App Name"'
-  defaults write com.microsoft.VSCode "ApplePressAndHoldEnabled" -bool "false"
-  defaults write com.apple.terminal "ApplePressAndHoldEnabled" -bool "false"
-  defaults write com.googlecode.iterm2 "ApplePressAndHoldEnabled" -bool "false"
-  defaults write org.alacritty "ApplePressAndHoldEnabled" -bool "false"
+function misc_defaults() {
+  echo "Setting misc defaults..."
+  defaults write com.apple.TextEdit RichText -int 0
+  defaults write com.apple.ActivityMonitor ShowCategory -int 0
+  defaults write NSGlobalDomain AppleShowScrollBars -string "WhenScrolling"
+  defaults write com.apple.LaunchServices LSQuarantine -bool false
+  defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+  defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
 }
 
 finder_defaults
 dock_defaults
 screenshot_defaults
-dock_defaults
 music_defaults
 keyboard_defaults
+trackpad_defaults
+misc_defaults
 
 echo "All set! Some settings will only be working after a full reboot."

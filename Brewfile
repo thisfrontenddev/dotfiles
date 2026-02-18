@@ -61,7 +61,6 @@ cask "slack"
 cask "whatsapp"
 
 # Docker / Containerization
-cask "docker"
 cask "orbstack"
 
 # Fonts
@@ -78,6 +77,7 @@ cask "font-space-mono-nerd-font"
 cask "cursor"
 brew "neovim"
 cask "visual-studio-code"
+cask "zed"
 
 # Mail
 cask "notion-mail"
@@ -125,5 +125,3 @@ cask "mediamate" # UI replacement for volume, brightness and now playing control
 cask "minisim" # Lightweight simulator launcher for iOS and Android
 cask "spacelauncher" # App launcher/switcher
 
-# Virtualization
-cask "docker"

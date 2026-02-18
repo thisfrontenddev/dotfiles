@@ -13,6 +13,8 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 # Zsh configuration directory
 export ZSH_CONFIG="${XDG_CONFIG_HOME}/zsh"
 
+export EDITOR=/opt/homebrew/bin/nvim
+
 # ============================================================================
 # LOAD LIBRARY FILES
 # ============================================================================
@@ -20,7 +22,6 @@ export ZSH_CONFIG="${XDG_CONFIG_HOME}/zsh"
 # Load all library files (prompt, key-bindings, etc.)
 if [[ -d "${ZSH_CONFIG}/lib" ]]; then
   for lib_file in "${ZSH_CONFIG}"/lib/*.zsh(N); do
-    #echo "Loading lib file : ${lib_file}"
     source "${lib_file}"
   done
 fi
@@ -42,7 +43,6 @@ fi
 # Load all alias files
 if [[ -d "${ZSH_CONFIG}/aliases" ]]; then
   for alias_file in "${ZSH_CONFIG}"/aliases/*.zsh(N); do
-    #echo "Loading aliases file : ${alias_file}"
     source "${alias_file}"
   done
 fi
@@ -56,26 +56,16 @@ if [[ -d "${ZSH_CONFIG}/completions" ]]; then
   fpath=("${ZSH_CONFIG}/completions" $fpath)
 fi
 
+# ============================================================================
+# COMPILE ZSH FILES IN BACKGROUND
+# ============================================================================
 
-
-
-
-. /opt/homebrew/opt/asdf/libexec/asdf.sh
-
-EDITOR=/opt/homebrew/bin/nvim
-
-PATH=~/.console-ninja/.bin:$PATH
-
-# pnpm
-export PNPM_HOME="/Users/null/Library/pnpm"
-case ":$PATH:" in
-*":$PNPM_HOME:"*) ;;
-*) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-
-export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+{
+  local f
+  for f in ~/.zshrc ~/.zshenv ~/.zprofile \
+           ${ZSH_CONFIG}/**/*.zsh(N); do
+    if [[ ! -f "${f}.zwc" || "${f}" -nt "${f}.zwc" ]]; then
+      zcompile "${f}" 2>/dev/null
+    fi
+  done
+} &!

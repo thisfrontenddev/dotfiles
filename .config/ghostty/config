@@ -23,6 +23,9 @@ window-save-state = always
 # To delete from the current position to the start of the line
 keybind = super+backspace=esc:w
 
+# Toggle quick terminal
+keybind = global:cmd+backquote=toggle_quick_terminal
+
 # TMUX integration considering that my leader key is ctrl + b
 
 # Go to the N window in tmux in tmux it is Ctrl+b+number
@@ -73,3 +76,4 @@ keybind = super+backslash=text:\x02\x25
 
 # Toggle pane zoom on Cmd+z in tmux it is Ctrl+b+z
 keybind = super+z=text:\x02\x7a
+keybind = shift+enter=text:\n

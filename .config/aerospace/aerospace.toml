@@ -161,7 +161,7 @@ automatically-unhide-macos-hidden-apps = false
     ctrl-alt-enter = 'layout floating tiling'
 
 [workspace-to-monitor-force-assignment]
-    1 = ['LEN G27c-10', 'secondary']
+    1 = ['MO27Q28G', 'secondary']
     2 = 'secondary'
     3 = 'secondary'
     4 = 'secondary'
@@ -171,8 +171,8 @@ automatically-unhide-macos-hidden-apps = false
     8 = 'main'
     9 = 'main'
     10 = 'main'
-    C = ['LG HDR WQHD', 'main']
-    W = ['LEN G27c-10', 'secondary']
+    C = ['MO27Q28G', 'main']
+    W = ['MO27Q28G', 'secondary']
     M = 'main'
 
 [[on-window-detected]]
