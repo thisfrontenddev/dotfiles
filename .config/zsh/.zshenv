@@ -1,0 +1,5 @@
+zmodload zsh/datetime
+__zsh_start=$EPOCHREALTIME
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+[[ -f "${XDG_CONFIG_HOME}/zsh/env.zsh" ]] && source "${XDG_CONFIG_HOME}/zsh/env.zsh"
