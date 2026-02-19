@@ -6,6 +6,8 @@ echo "==> Optimizing Spotlight indexing..."
 # Disable Spotlight indexing for development directories
 # These are added to the Spotlight privacy list (excluded from indexing)
 EXCLUDE_DIRS=(
+  "$HOME/Projects"
+  "$HOME/work"
   "$HOME/Library/Caches"
   "$HOME/.cargo"
   "$HOME/.local"
@@ -25,9 +27,25 @@ done
 
 # Note: node_modules and .git are better handled by adding to Spotlight
 # privacy list via System Settings > Spotlight > Search Privacy
-echo ""
-echo "==> MANUAL: Add ~/work and other project roots to Spotlight Privacy list"
-echo "   System Settings > Spotlight > Search Privacy > Add directories"
-echo "   (Raycast handles project search better than Spotlight anyway)"
 
-echo "==> Spotlight optimization complete."
+# ============================================================================
+# TIME MACHINE EXCLUSIONS
+# ============================================================================
+
+echo "==> Excluding dev artifacts from Time Machine..."
+
+# Exclude node_modules from all project directories
+for dir in "$HOME"/Projects/*/node_modules "$HOME"/work/*/node_modules; do
+  if [[ -d "$dir" ]]; then
+    tmutil addexclusion "$dir" 2>/dev/null || true
+    echo "  Excluded from TM: $dir"
+  fi
+done
+
+# Exclude caches
+if [[ -d "$HOME/.cache" ]]; then
+  tmutil addexclusion "$HOME/.cache" 2>/dev/null || true
+  echo "  Excluded from TM: ~/.cache"
+fi
+
+echo "==> Spotlight & Time Machine optimization complete."

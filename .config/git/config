@@ -15,6 +15,9 @@
 	excludesfile = ~/.config/git/ignore
 	autocrlf = input     # Handle line endings properly on cross-platform
 	pager = less -FRX    # Better pager behavior
+	fsmonitor = true
+	untrackedcache = true
+	preloadindex = true
 [pull]
 	rebase = true        # Cleaner history with rebase instead of merge
 [push]
