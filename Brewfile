@@ -50,6 +50,9 @@ brew "watchman"
 # AI Clients
 cask "claude"
 
+# Agentic interfaces
+cask "conductor"
+
 # Browsers
 cask "arc"
 cask "firefox"
