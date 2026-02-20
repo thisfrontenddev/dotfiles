@@ -32,6 +32,7 @@ desktop.ini
 *.pem
 *.key
 id_rsa*
+secrets.zsh
 
 # Node.js
 node_modules/
