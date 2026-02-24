@@ -47,7 +47,14 @@ function keyboard_defaults() {
   echo "Setting keyboard defaults..."
   defaults write -g InitialKeyRepeat -int 10
   defaults write -g KeyRepeat -int 1
-  defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+  defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool true
+  # Disable press-and-hold for apps where key repeat is more useful
+  defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false
+  defaults write com.todesktop.230313mzl4w4u92 ApplePressAndHoldEnabled -bool false
+  defaults write com.apple.Terminal ApplePressAndHoldEnabled -bool false
+  defaults write com.googlecode.iterm2 ApplePressAndHoldEnabled -bool false
+  defaults write org.alacritty ApplePressAndHoldEnabled -bool false
+  defaults write com.mitchellh.ghostty ApplePressAndHoldEnabled -bool false
   defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
   defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
