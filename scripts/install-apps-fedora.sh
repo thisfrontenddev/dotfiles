@@ -71,7 +71,6 @@ FLATPAKS=(
   com.slack.Slack
   app.zen_browser.zen
   md.obsidian.Obsidian
-  com.spotify.Client
   com.discordapp.Discord
   com.obsproject.Studio
 )
