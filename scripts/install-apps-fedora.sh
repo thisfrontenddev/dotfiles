@@ -115,15 +115,27 @@ echo "==> Installing Claude Code CLI..."
 if command -v claude &>/dev/null; then
   echo "    Claude CLI already installed"
 else
-  # Ensure fnm + Node LTS are available
-  if command -v fnm &>/dev/null; then
+  # Ensure Homebrew is in PATH (needed when running standalone)
+  if ! command -v fnm &>/dev/null && [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+
+  if ! command -v fnm &>/dev/null; then
+    echo "    ERROR: fnm not found — install Homebrew + fnm first (brew install fnm)"
+  else
     eval "$(fnm env)"
     if ! fnm list 2>/dev/null | grep -q lts-latest; then
-      fnm install --lts
+      echo "    Installing Node LTS via fnm..."
+      fnm install --lts || { echo "    ERROR: fnm install --lts failed"; }
     fi
-    fnm use --install-if-missing lts-latest
+    fnm use --install-if-missing lts-latest || { echo "    ERROR: fnm use lts-latest failed"; }
+
+    if command -v npm &>/dev/null; then
+      npm install -g @anthropic-ai/claude-code || echo "    ERROR: npm install claude-code failed"
+    else
+      echo "    ERROR: npm not available after fnm setup"
+    fi
   fi
-  npm install -g @anthropic-ai/claude-code
 fi
 
 # ── waypaper (pipx) ──
