@@ -4,48 +4,31 @@ tap "felixkratz/formulae"
 tap "koekeishiya/formulae"
 tap "nikitabobko/tap"
 
-# Language version manager
+# ── CLI tools (shared with Linux via Brewfile.common) ──
 brew "asdf"
-# Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
-# Modern system monitoring CLI
 brew "btop"
-# Count lines of code in a project
 brew "cloc"
-# Commitizen CLI
 brew "commitizen"
-# Modern, maintained replacement for ls
 brew "eza"
-# Modern & fast system information tool
 brew "fastfetch"
-# Fast video transcoder
 brew "ffmpeg"
-# Fast and simple node version manager written in Rust
 brew "fnm"
-# Fast as fuck fuzzy finder
 brew "fzf"
-# GitHub CLI
 brew "gh"
-# Image conversion tool
 brew "imagemagick"
-# Simple terminal UI for git commands
 brew "lazygit"
-# Node.js
+brew "neovim"
 brew "node"
-# Fast, disk space efficient package manager
 brew "pnpm"
-# Modern replacement for `grep`
 brew "ripgrep"
-# Rust toolchain installer
 brew "rustup"
-# Cross-shell prompt written in Rust
 brew "starship"
-# Simplified and community-driven man pages
 brew "tldr"
-# Terminal multiplexer
 brew "tmux"
-# File watcher
-brew "watchman" 
+brew "watchman"
+
+# ── macOS-only casks below ──
 
 # AI Clients
 cask "claude"
@@ -78,7 +61,6 @@ cask "font-space-mono-nerd-font"
 
 # IDE
 cask "cursor"
-brew "neovim"
 cask "visual-studio-code"
 cask "zed"
 
@@ -127,4 +109,3 @@ cask "keyboardcleantool" # Disable keyboard when cleaning the mac
 cask "mediamate" # UI replacement for volume, brightness and now playing controls
 cask "minisim" # Lightweight simulator launcher for iOS and Android
 cask "spacelauncher" # App launcher/switcher
-

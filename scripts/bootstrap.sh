@@ -28,8 +28,10 @@ if [[ ! -d "$HOME/.cfg" ]]; then
   dot config --local status.showUntrackedFiles no
 fi
 
-# --- Step 4: Zsh symlinks (uses existing script) ---
-bash "$SCRIPTS_DIR/zsh-setup.sh"
+# --- Step 4: Zsh symlinks ---
+echo "==> Setting up zsh symlinks..."
+ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
+ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
 
 # --- Step 5: Rust (uses existing script) ---
 bash "$SCRIPTS_DIR/rust.sh"

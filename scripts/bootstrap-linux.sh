@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "=== Linux Bootstrap ==="
+
+# ── Detect distro ──
+if [[ -f /etc/os-release ]]; then
+  . /etc/os-release
+  DISTRO="$ID"
+else
+  echo "Cannot detect distro. Exiting."
+  exit 1
+fi
+
+# ── Step 1: Install system packages ──
+echo "==> Installing system packages..."
+case "$DISTRO" in
+  fedora)
+    sudo dnf install -y --skip-unavailable \
+      zsh git gcc gcc-c++ cmake ninja-build clang lld \
+      golang java-latest-openjdk-devel \
+      podman podman-compose \
+      neovim tmux fzf \
+      htop btop ripgrep fd-find bat jq yq \
+      strace ltrace hyperfine tokei \
+      fastfetch imagemagick ffmpeg \
+      gnome-tweaks gnome-extensions-app \
+      pipx snapper \
+      fontconfig
+    ;;
+  ubuntu|debian|pop)
+    sudo apt update
+    sudo apt install -y \
+      zsh git gcc g++ cmake ninja-build clang lld \
+      golang-go default-jdk \
+      podman \
+      neovim tmux fzf \
+      htop btop ripgrep fd-find bat jq \
+      strace ltrace \
+      fastfetch imagemagick ffmpeg \
+      pipx snapper \
+      fontconfig
+    ;;
+  arch|endeavouros|manjaro)
+    sudo pacman -Syu --noconfirm --needed \
+      zsh git gcc cmake ninja clang lld \
+      go jdk-openjdk \
+      podman podman-compose \
+      neovim tmux fzf \
+      htop btop ripgrep fd bat jq yq \
+      strace ltrace hyperfine tokei \
+      fastfetch imagemagick ffmpeg \
+      pipx snapper \
+      fontconfig
+    ;;
+  *)
+    echo "Unsupported distro: $DISTRO — install packages manually."
+    ;;
+esac
+
+# ── Step 2: Homebrew (for tools not in distro repos) ──
+echo "==> Setting up Homebrew..."
+if ! command -v brew &>/dev/null; then
+  echo "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Install CLI-only formulae from Brewfile
+echo "==> Installing Homebrew formulae..."
+brew bundle install --no-lock --file="$SCRIPTS_DIR/../Brewfile.common" 2>/dev/null || true
+
+# ── Step 3: Clone dotfiles (if not already present) ──
+if [[ ! -d "$HOME/.cfg" ]]; then
+  echo "==> Cloning dotfiles..."
+  git clone --bare https://github.com/thisfrontenddev/dotfiles.git "$HOME/.cfg"
+  alias dot="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
+  dot checkout 2>/dev/null || {
+    echo "Backing up conflicting dotfiles..."
+    mkdir -p "$HOME/.dotfiles-backup"
+    dot checkout 2>&1 | grep -E "^\s+" | awk '{print $1}' | xargs -I{} mv {} "$HOME/.dotfiles-backup/{}"
+    dot checkout
+  }
+  dot config --local status.showUntrackedFiles no
+fi
+
+# ── Step 4: Zsh symlinks ──
+echo "==> Setting up zsh symlinks..."
+ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
+ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
+
+# ── Step 5: Rust ──
+bash "$SCRIPTS_DIR/rust.sh"
+
+# ── Step 6: Create required directories ──
+mkdir -p "$HOME/.local/state/zsh"
+mkdir -p "$HOME/.cache/zsh"
+
+# ── Step 7: Install fonts ──
+echo "==> Installing Nerd Fonts..."
+FONT_DIR="$HOME/.local/share/fonts"
+mkdir -p "$FONT_DIR"
+for font in JetBrainsMono GeistMono SpaceMono; do
+  if [[ ! -d "$FONT_DIR/$font" ]]; then
+    echo "  Downloading $font Nerd Font..."
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${font}.tar.xz" \
+      | tar -xJf - -C "$FONT_DIR"
+  fi
+done
+fc-cache -f 2>/dev/null || true
+
+# ── Step 8: tmux plugin manager ──
+if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
+  echo "==> Installing tmux plugin manager..."
+  git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+fi
+
+# ── Step 9: Set default shell ──
+ZSH_PATH="$(command -v zsh)"
+if [[ -n "$ZSH_PATH" && "$SHELL" != "$ZSH_PATH" ]]; then
+  echo "==> Setting zsh as default shell..."
+  chsh -s "$ZSH_PATH"
+fi
+
+echo ""
+echo "=== Linux Bootstrap complete! ==="
+echo "  • Restart your terminal (or log out/in) to activate zsh"
+echo "  • Run 'tmux' then press prefix+I to install tmux plugins"

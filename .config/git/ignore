@@ -1,12 +1,18 @@
-# OS generated files
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+
+# Windows
 ehthumbs.db
 Thumbs.db
 desktop.ini
+
+# Linux
+*~
+.directory
 
 # Editor and IDE files
 .vscode/

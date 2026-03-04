@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# XCode CLI installation
-./scripts/xcode-setup.sh
+SCRIPTS_DIR="$(cd "$(dirname "$0")/scripts" && pwd)"
 
-# Install homebrew and dependencies
-./scripts/homebrew.sh
-
-# Setting MacOS defaults
-./scripts/macosdefaults.sh
-
-# Setting up rust
-./scripts/rust.sh
+case "$(uname -s)" in
+  Darwin)
+    echo "=== macOS Setup ==="
+    bash "$SCRIPTS_DIR/bootstrap.sh"
+    ;;
+  Linux)
+    echo "=== Linux Setup ==="
+    bash "$SCRIPTS_DIR/bootstrap-linux.sh"
+    ;;
+  *)
+    echo "Unsupported OS: $(uname -s)"
+    exit 1
+    ;;
+esac

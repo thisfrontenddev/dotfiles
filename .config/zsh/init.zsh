@@ -13,7 +13,14 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 # Zsh configuration directory
 export ZSH_CONFIG="${XDG_CONFIG_HOME}/zsh"
 
-export EDITOR=/opt/homebrew/bin/nvim
+# Use first available editor
+if (( $+commands[nvim] )); then
+  export EDITOR=nvim
+elif (( $+commands[vim] )); then
+  export EDITOR=vim
+else
+  export EDITOR=vi
+fi
 
 # ============================================================================
 # LOAD LIBRARY FILES
