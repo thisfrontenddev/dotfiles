@@ -1,34 +1,13 @@
+# Brewfile — macOS-only taps and casks
+# CLI tools shared with Linux are in Brewfile.common
+
 tap "homebrew/bundle"
 tap "homebrew/cask-fonts"
 tap "felixkratz/formulae"
 tap "koekeishiya/formulae"
 tap "nikitabobko/tap"
 
-# ── CLI tools (shared with Linux via Brewfile.common) ──
-brew "asdf"
-brew "bat"
-brew "btop"
-brew "cloc"
-brew "commitizen"
-brew "eza"
-brew "fastfetch"
-brew "ffmpeg"
-brew "fnm"
-brew "fzf"
-brew "gh"
-brew "imagemagick"
-brew "lazygit"
-brew "neovim"
-brew "node"
-brew "pnpm"
-brew "ripgrep"
-brew "rustup"
-brew "starship"
-brew "tldr"
-brew "tmux"
-brew "watchman"
-
-# ── macOS-only casks below ──
+# ── macOS-only casks ──
 
 # AI Clients
 cask "claude"

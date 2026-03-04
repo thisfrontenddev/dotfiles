@@ -15,8 +15,10 @@ function install_deps() {
 
     read -p "Install brew dependencies? (y/n) " yn
 
-    case $yn in 
-        [yY] ) brew bundle install --force;
+    case $yn in
+        [yY] ) DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+            brew bundle install --force --file="$DOTFILES_DIR/Brewfile.common"
+            brew bundle install --force --file="$DOTFILES_DIR/Brewfile";
             break;;
         [nN] ) echo;
             exit;;
