@@ -25,7 +25,8 @@ sudo dnf install -y --skip-unavailable \
   strace ltrace hyperfine tokei \
   fastfetch imagemagick ffmpeg \
   pipx snapper \
-  fontconfig
+  fontconfig \
+  gh cloc tldr pnpm
 
 # ── Sway ecosystem (dnf) ──
 echo "==> Installing Sway ecosystem..."
