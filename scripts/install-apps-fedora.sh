@@ -51,6 +51,24 @@ else
   sudo dnf install -y ghostty
 fi
 
+# ── Cider (Apple Music — repo → dnf) ──
+echo "==> Installing Cider..."
+if command -v cider &>/dev/null || rpm -q Cider &>/dev/null; then
+  echo "    Cider already installed"
+else
+  sudo rpm --import https://repo.cider.sh/RPM-GPG-KEY
+  sudo tee /etc/yum.repos.d/cider.repo << 'REPO' >/dev/null
+[cidercollective]
+name=Cider Collective Repository
+baseurl=https://repo.cider.sh/rpm/RPMS
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.cider.sh/RPM-GPG-KEY
+REPO
+  sudo dnf makecache
+  sudo dnf install -y Cider
+fi
+
 # ── Docker Engine (repo → dnf) ──
 echo "==> Installing Docker..."
 if command -v docker &>/dev/null; then
