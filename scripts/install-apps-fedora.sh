@@ -110,12 +110,20 @@ DESKTOP
   update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 fi
 
-# ── Claude Code CLI ──
+# ── Claude Code CLI (requires Node via fnm) ──
 echo "==> Installing Claude Code CLI..."
 if command -v claude &>/dev/null; then
   echo "    Claude CLI already installed"
 else
-  curl -fsSL https://claude.ai/install.sh | sh
+  # Ensure fnm + Node LTS are available
+  if command -v fnm &>/dev/null; then
+    eval "$(fnm env)"
+    if ! fnm list 2>/dev/null | grep -q lts-latest; then
+      fnm install --lts
+    fi
+    fnm use --install-if-missing lts-latest
+  fi
+  npm install -g @anthropic-ai/claude-code
 fi
 
 # ── waypaper (pipx) ──
