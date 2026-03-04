@@ -18,17 +18,9 @@ fi
 echo "==> Installing system packages..."
 case "$DISTRO" in
   fedora)
+    # Base packages only — full Fedora installs handled by setup-fedora.sh
     sudo dnf install -y --skip-unavailable \
-      zsh git gcc gcc-c++ cmake ninja-build clang lld \
-      golang java-latest-openjdk-devel \
-      podman podman-compose \
-      neovim tmux fzf \
-      htop btop ripgrep fd-find bat jq yq \
-      strace ltrace hyperfine tokei \
-      fastfetch imagemagick ffmpeg \
-      gnome-tweaks gnome-extensions-app \
-      pipx snapper \
-      fontconfig
+      zsh git gcc gcc-c++ cmake fontconfig curl
     ;;
   ubuntu|debian|pop)
     sudo apt update
@@ -109,6 +101,17 @@ for font in JetBrainsMono GeistMono SpaceMono; do
       | tar -xJf - -C "$FONT_DIR"
   fi
 done
+
+# Inter — used as system UI font
+if ! ls "$FONT_DIR"/Inter*.ttf &>/dev/null && ! ls "$FONT_DIR"/Inter*.otf &>/dev/null; then
+  echo "  Downloading Inter font..."
+  INTER_TMP="$(mktemp -d)"
+  curl -fsSL "https://github.com/rsms/inter/releases/latest/download/Inter-4.1.zip" -o "$INTER_TMP/inter.zip"
+  unzip -qo "$INTER_TMP/inter.zip" -d "$INTER_TMP"
+  cp "$INTER_TMP"/Inter*.ttf "$FONT_DIR/" 2>/dev/null || cp "$INTER_TMP"/**/*.ttf "$FONT_DIR/" 2>/dev/null || true
+  rm -rf "$INTER_TMP"
+fi
+
 fc-cache -f 2>/dev/null || true
 
 # ── Step 8: tmux plugin manager ──
@@ -122,6 +125,12 @@ ZSH_PATH="$(command -v zsh)"
 if [[ -n "$ZSH_PATH" && "$SHELL" != "$ZSH_PATH" ]]; then
   echo "==> Setting zsh as default shell..."
   chsh -s "$ZSH_PATH"
+fi
+
+# ── Step 10: Fedora-specific setup ──
+if [[ "$DISTRO" == "fedora" ]]; then
+  echo "==> Running Fedora setup..."
+  bash "$SCRIPTS_DIR/setup-fedora.sh"
 fi
 
 echo ""
