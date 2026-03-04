@@ -130,10 +130,10 @@ else
     fi
     fnm use --install-if-missing lts-latest || { echo "    ERROR: fnm use lts-latest failed"; }
 
-    if command -v npm &>/dev/null; then
-      npm install -g @anthropic-ai/claude-code || echo "    ERROR: npm install claude-code failed"
+    if command -v node &>/dev/null; then
+      curl -fsSL https://claude.ai/install.sh | sh || echo "    ERROR: Claude Code install script failed"
     else
-      echo "    ERROR: npm not available after fnm setup"
+      echo "    ERROR: node not available after fnm setup"
     fi
   fi
 fi
