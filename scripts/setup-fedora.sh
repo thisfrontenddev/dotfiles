@@ -44,6 +44,32 @@ else
   info "WARNING: ~/.config/dconf/workspace-keybindings.ini not found — keybindings not configured"
 fi
 
+# ── 5. Default browser ──
+step "Setting default browser to Zen"
+xdg-mime default app.zen_browser.zen.desktop x-scheme-handler/http
+xdg-mime default app.zen_browser.zen.desktop x-scheme-handler/https
+xdg-mime default app.zen_browser.zen.desktop text/html
+info "Zen Browser set as default"
+
+# ── 6. Snapper (btrfs snapshots) ──
+step "Configuring Snapper"
+if command -v snapper &>/dev/null; then
+  if ! sudo snapper list-configs 2>/dev/null | grep -q "^root"; then
+    sudo snapper create-config /
+    info "Snapper config created for /"
+  else
+    info "Snapper root config already exists"
+  fi
+  if ! sudo snapper list-configs 2>/dev/null | grep -q "^home"; then
+    sudo snapper create-config /home
+    info "Snapper config created for /home"
+  else
+    info "Snapper home config already exists"
+  fi
+else
+  info "Snapper not installed — skipping"
+fi
+
 # ── 7. Sway setup ──
 step "Setting up Sway"
 

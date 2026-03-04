@@ -5,6 +5,12 @@ SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== Fedora App & Package Installation ==="
 
+# ── DNF performance tuning ──
+if ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
+  echo "==> Tuning DNF config..."
+  echo 'max_parallel_downloads=10' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+fi
+
 # ── Drivers (NVIDIA, RPM Fusion) ──
 bash "$SCRIPTS_DIR/install-drivers-fedora.sh"
 
@@ -102,6 +108,22 @@ MimeType=text/plain;
 StartupWMClass=Cursor
 DESKTOP
   update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
+
+# ── Claude Code CLI ──
+echo "==> Installing Claude Code CLI..."
+if command -v claude &>/dev/null; then
+  echo "    Claude CLI already installed"
+else
+  curl -fsSL https://claude.ai/install.sh | sh
+fi
+
+# ── waypaper (pipx) ──
+echo "==> Installing waypaper..."
+if pipx list 2>/dev/null | grep -q waypaper; then
+  echo "    waypaper already installed"
+else
+  pipx install waypaper
 fi
 
 echo ""
