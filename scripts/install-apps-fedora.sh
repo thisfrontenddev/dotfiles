@@ -74,7 +74,6 @@ FLATPAKS=(
   com.spotify.Client
   com.discordapp.Discord
   com.obsproject.Studio
-  com.figma.Figma
 )
 
 for app in "${FLATPAKS[@]}"; do
