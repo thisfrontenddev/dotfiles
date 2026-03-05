@@ -83,24 +83,27 @@
 	},
 	/* CPU (usage + temp combined) */
 	"custom/cpu": {
-		"exec": "printf '%s%% %s°C' $(grep 'cpu ' /proc/stat | awk '{u=$2+$4; t=$2+$4+$5; printf \"%.0f\", u*100/t}') $(awk '{printf \"%.0f\", $1/1000}' /sys/class/hwmon/hwmon5/temp1_input)",
+		"exec": "~/.config/waybar/scripts/cpu-info.sh",
+		"return-type": "json",
 		"format": " {}",
 		"interval": 2,
-		"tooltip": false
+		"tooltip": true
 	},
 	/* GPU (usage + temp combined, NVIDIA) */
 	"custom/gpu": {
-		"exec": "nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits | awk -F', ' '{printf \"%s%% %s°C\", $1, $2}'",
+		"exec": "~/.config/waybar/scripts/gpu-info.sh",
+		"return-type": "json",
 		"format": "󰸌 {}",
 		"interval": 2,
-		"tooltip": false
+		"tooltip": true
 	},
 	/* RAM USAGE */
 	"custom/memory": {
-		"exec": "free -b | awk '/Mem:/ {printf \"%.1fG/64G\", ($3)/1073741824}'",
+		"exec": "~/.config/waybar/scripts/mem-info.sh",
+		"return-type": "json",
 		"format": "󰻆 {}",
 		"interval": 2,
-		"tooltip": false
+		"tooltip": true
 	},
 	/* NETWORK */
 	"network": {

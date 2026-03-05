@@ -21,6 +21,9 @@
 @define-color gr1 #15633F;
 @define-color gr2 #0C3423;
 
+@define-color cy0 #5DF4FB;
+@define-color cy1 #0B292F;
+
 @define-color ye0 #F2D230;
 @define-color ye1 #635618;
 @define-color ye2 #332D10;
@@ -33,8 +36,6 @@
 @define-color vi1 #421666;
 @define-color vi2 #230D37;
 
-@define-color cy0 #29BECC;
-@define-color cy1 #124E56;
 @define-color cy2 #0B292F;
 
 @define-color wh0 #898D99;
@@ -175,7 +176,7 @@ window#waybar.hidden {
 
 #custom-logo:hover {
 	color: @no0;
-	background-image: url('svg/logo-bg-gr0.svg');
+	background-image: url('svg/logo-bg-cy0.svg');
 }
 
 
@@ -203,7 +204,8 @@ window#waybar.hidden {
 }
 
 #workspaces button.focused label {
-	color: @gr0;
+	color: @cy0;
+	font-weight: bold;
 }
 
 #workspaces button:hover {
@@ -215,11 +217,12 @@ window#waybar.hidden {
 }
 
 #workspaces button.focused:hover {
-	background-color: @gr2;
+	background-color: @cy1;
 }
 
 #workspaces button.focused label {
-	color: @gr0;
+	color: @cy0;
+	font-weight: bold;
 }
 
 #workspaces button.urgent {
@@ -241,7 +244,8 @@ window#waybar.hidden {
 
 #clock.time:hover,
 #clock.date:hover {
-	color: @gr0;
+	color: @cy0;
+	font-weight: bold;
 	background-color: @no1;
 }
 
@@ -263,7 +267,8 @@ window#waybar.hidden {
 #custom-cpu:hover,
 #custom-memory:hover,
 #custom-gpu:hover {
-	color: @gr0;
+	color: @cy0;
+	font-weight: bold;
 	background-color: @no1;
 }
 
@@ -281,7 +286,7 @@ window#waybar.hidden {
 }
 
 #network.linked {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
@@ -296,12 +301,12 @@ window#waybar.hidden {
 
 #network:hover,
 #pulseaudio:hover {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
 #pulseaudio.muted:hover {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
@@ -309,7 +314,7 @@ window#waybar.hidden {
 /* === MUSIC === */
 
 #custom-music {
-	background-color: @gr0;
+	background-color: @cy0;
 	color: @no0;
 	padding: 0 32px;
 	border: none;
@@ -325,7 +330,7 @@ window#waybar.hidden {
 }
 
 #custom-notifications:hover {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
@@ -334,7 +339,7 @@ window#waybar.hidden {
 }
 
 #custom-notifications.dnd-none:hover {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
@@ -347,7 +352,7 @@ window#waybar.hidden {
 }
 
 #custom-updates:hover {
-	background-color: @gr1;
+	background-color: @cy1;
 }
 
 
@@ -376,7 +381,7 @@ window#waybar.hidden {
 #custom-wf-recorder:hover,
 #bluetooth:hover,
 #language:hover {
-	color: @gr0;
+	color: @cy0;
 	background-color: @no1;
 }
 
@@ -406,8 +411,8 @@ window#waybar.hidden {
 #custom-center-hdmi.music,
 #custom-center-dp6.music {
 	color: @no0;
-	background-color: @gr0;
-	background-image: url('svg/center-left-gr0.svg'), url('svg/center-right-gr0.svg');
+	background-color: @cy0;
+	background-image: url('svg/center-left-cy0.svg'), url('svg/center-right-cy0.svg');
 	background-position: left, right;
 	background-size: 14px 31px, 14px 31px;
 	background-repeat: no-repeat, no-repeat;
