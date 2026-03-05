@@ -69,7 +69,7 @@ player = '$player_name'.lower()
 # Map of player names to app_id patterns they could match
 player_map = {
     'firefox': ['firefox', 'zen', 'librewolf', 'waterfox', 'floorp'],
-    'chromium': ['chromium', 'chrome', 'brave', 'vivaldi', 'edge'],
+    'chromium': ['chromium', 'chrome', 'brave', 'vivaldi', 'edge', 'cider'],
     'spotify': ['spotify'],
     'vlc': ['vlc'],
     'mpv': ['mpv'],
@@ -97,6 +97,12 @@ print('no')
     if [[ "$on_this_output" == "yes" ]]; then
         artist=$(playerctl metadata artist 2>/dev/null)
         title=$(playerctl metadata title 2>/dev/null)
+
+        # Fall back to cached metadata (media-cache-daemon.sh catches brief MPRIS updates from Cider)
+        if [[ -z "$artist" && -z "$title" && -f "/tmp/.waybar-media-cache/${player_name}" ]]; then
+            IFS=$'\t' read -r artist title _ < "/tmp/.waybar-media-cache/${player_name}"
+        fi
+
         icon=""
         [[ "$status" == "Paused" ]] && icon=""
         if [[ -n "$artist" && -n "$title" ]]; then
