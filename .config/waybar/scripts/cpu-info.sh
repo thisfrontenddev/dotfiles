@@ -10,7 +10,7 @@ while IFS= read -r line; do
     cur[$name]="$line"
 done < <(grep '^cpu' /proc/stat)
 
-temp=$(awk '{printf "%.0f", $1/1000}' /sys/class/hwmon/hwmon5/temp1_input)
+temp=$(sensors -j 2>/dev/null | jq -r '.["k10temp-pci-00c3"].Tctl.temp1_input // empty' | xargs printf "%.0f" 2>/dev/null || echo "?")
 
 # Calculate delta if previous sample exists
 if [[ -f "$STAT_FILE" ]]; then
@@ -65,7 +65,7 @@ grep '^cpu' /proc/stat > "$STAT_FILE"
 
 # Top 5 CPU-hungry processes
 tooltip+="───────────────\n"
-top_procs=$(ps -eo pcpu,comm --sort=-pcpu --no-headers | head -5 | awk '{printf "%5.1f%%  %s\\n", $1, $2}')
+top_procs=$(top -bn1 -o %CPU | awk 'NR>7 && NR<=12 {printf "%5.1f%%  %s\\n", $9, $12}')
 tooltip+="$top_procs"
 
 printf '{"text": "%s%% %s°C", "tooltip": "%s"}' "$total" "$temp" "$tooltip"

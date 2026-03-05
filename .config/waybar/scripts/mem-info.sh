@@ -24,9 +24,19 @@ sw_used_g=$(to_g "$sw_used")
 tooltip+="───────────────\n"
 tooltip+="Swap: ${sw_used_g}G / ${sw_total_g}G\n"
 
+# Reserved memory (installed minus kernel-visible)
+total_g_raw=$(awk "BEGIN {printf \"%.1f\", $total/1073741824}")
+installed_g=$(awk "BEGIN {
+    v = $total_g_raw
+    split(\"8 16 32 64 128 256 512\", sizes)
+    for (i in sizes) if (sizes[i]+0 >= v) { print sizes[i]; exit }
+}")
+reserved_g=$(awk "BEGIN {printf \"%.1f\", $installed_g - $total_g_raw}")
+tooltip+="Reserved: ${reserved_g}G\n"
+
 # Top 5 RAM-hungry processes
 tooltip+="───────────────\n"
 top_procs=$(ps -eo rss,comm --sort=-rss --no-headers | head -5 | awk '{printf "%6.0fM  %s\\n", $1/1024, $2}')
 tooltip+="$top_procs"
 
-printf '{"text": "%sG/64G", "tooltip": "%s"}' "$used_g" "$tooltip"
+printf '{"text": "%sG/%sG", "tooltip": "%s"}' "$used_g" "$installed_g" "$tooltip"
