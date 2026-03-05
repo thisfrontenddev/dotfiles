@@ -1,4 +1,34 @@
-theme = "ayu"
+# CYBRland color palette (from CYBRkitty.conf)
+background = 030408
+foreground = 898D99
+cursor-color = F24848
+cursor-text = 030408
+selection-foreground = 030408
+selection-background = F24848
+# black
+palette = 0=#030408
+palette = 8=#124E56
+# red
+palette = 1=#F24848
+palette = 9=#631F21
+# green
+palette = 2=#30F291
+palette = 10=#15633F
+# yellow
+palette = 3=#F2D230
+palette = 11=#635618
+# blue
+palette = 4=#3061F2
+palette = 12=#152966
+# magenta
+palette = 5=#A130F2
+palette = 13=#421666
+# cyan
+palette = 6=#29BECC
+palette = 14=#124E56
+# white
+palette = 7=#898D99
+palette = 15=#393B42
 
 cursor-style = block
 

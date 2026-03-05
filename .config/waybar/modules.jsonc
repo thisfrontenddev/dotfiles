@@ -1,0 +1,232 @@
+/*
+# ---------------------------------------
+# CYBRbar     waybar modules (part of cybrland)
+# Adapted for Fedora + Sway by void
+# Original:   https://github.com/scherrer-txt/cybrland
+# Author:     scherrer-txt   |   License:     GPL-3.0
+# ---------------------------------------
+*/
+{
+	/* ARROWS */
+	"custom/arrow-right-no1": {
+		"format": "  ",
+		"tooltip": false
+	},
+	"custom/arrow-left-no1": {
+		"format": "  ",
+		"tooltip": false
+	},
+	"custom/arrow-right-re0": {
+		"format": "  ",
+		"tooltip": false
+	},
+	"custom/arrow-left-re0": {
+		"format": "  ",
+		"tooltip": false
+	},
+	"custom/arrow-right-gr0": {
+		"format": "  ",
+		"tooltip": false
+	},
+	"custom/arrow-left-gr0": {
+		"format": "  ",
+		"tooltip": false
+	},
+	/* DYNAMIC CENTER ARROWS — red for window, green for music */
+	"custom/arrow-right-center-hdmi": {
+		"return-type": "json",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-2",
+		"interval": 2,
+		"tooltip": false
+	},
+	"custom/arrow-left-center-hdmi": {
+		"return-type": "json",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-2",
+		"interval": 2,
+		"tooltip": false
+	},
+	"custom/arrow-right-center-dp6": {
+		"return-type": "json",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-6",
+		"interval": 2,
+		"tooltip": false
+	},
+	"custom/arrow-left-center-dp6": {
+		"return-type": "json",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-6",
+		"interval": 2,
+		"tooltip": false
+	},
+	/* CLOCKS */
+	"clock#time": {
+		"format": "{:%H.%M:%OS}",
+		"interval": 1,
+		"tooltip-format": "<tt><small>{calendar}</small></tt>",
+		"calendar": {
+			"mode": "month",
+			"mode-mon-col": 3,
+			"weeks-pos": "left",
+			"on-scroll": 1,
+			"on-click-right": "mode"
+		}
+	},
+	"clock#date": {
+		"format": "{:%Y/%m/%d}",
+		"tooltip-format": "<tt><small>{calendar}</small></tt>",
+		"calendar": {
+			"mode": "month",
+			"mode-mon-col": 3,
+			"weeks-pos": "left",
+			"on-scroll": 1,
+			"on-click-right": "mode"
+		}
+	},
+	/* CPU (usage + temp combined) */
+	"custom/cpu": {
+		"exec": "printf '%s%% %s°C' $(grep 'cpu ' /proc/stat | awk '{u=$2+$4; t=$2+$4+$5; printf \"%.0f\", u*100/t}') $(awk '{printf \"%.0f\", $1/1000}' /sys/class/hwmon/hwmon5/temp1_input)",
+		"format": " {}",
+		"interval": 2,
+		"tooltip": false
+	},
+	/* GPU (usage + temp combined, NVIDIA) */
+	"custom/gpu": {
+		"exec": "nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits | awk -F', ' '{printf \"%s%% %s°C\", $1, $2}'",
+		"format": "󰸌 {}",
+		"interval": 2,
+		"tooltip": false
+	},
+	/* RAM USAGE */
+	"custom/memory": {
+		"exec": "free -b | awk '/Mem:/ {printf \"%.1fG/64G\", ($3)/1073741824}'",
+		"format": "󰻆 {}",
+		"interval": 2,
+		"tooltip": false
+	},
+	/* NETWORK */
+	"network": {
+		"format-wifi": "",
+		"format-ethernet": "",
+		"tooltip-format-wifi": "Network: <b>{essid}</b>\nSignal strength: <b>{signaldBm}dBm ({signalStrength}%)</b>\nFrequency: <b>{frequency}MHz</b>\nInterface: <b>{ifname}</b>\nIP: <b>{ipaddr}/{cidr}</b>\nGateway: <b>{gwaddr}</b>\nNetmask: <b>{netmask}</b>\n<span foreground='#eed49f'> {bandwidthDownBytes}</span> <span foreground='#b7bdf8'> {bandwidthUpBytes}</span>",
+		"tooltip-format-ethernet": "Network: <b>Ethernet</b>\nInterface: <b>{ifname}</b>\nIP: <b>{ipaddr}/{cidr}</b>\nGateway: <b>{gwaddr}</b>\nNetmask: <b>{netmask}</b>\n<span foreground='#eed49f'> {bandwidthDownBytes}</span> <span foreground='#b7bdf8'> {bandwidthUpBytes}</span>",
+		"format-linked": "󰈀 {ifname} (No IP)",
+		"format-disconnected": "󰖪 ",
+		"tooltip": true,
+		"interval": 2
+	},
+	/* AUDIO */
+	"pulseaudio": {
+		"format": "  {volume}%",
+		"format-muted": "  MUTE",
+		"interval": 1,
+		"tooltip-format": "{desc}, {volume}%",
+		"on-click": "pavucontrol",
+		"on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+		"on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+		"on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+",
+		"on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+	},
+	/* LOGO (Fedora) */
+	"custom/logo": {
+		"format": "  ",
+		"tooltip": false,
+		"on-click": "rofi -show drun"
+	},
+	/* MUSIC */
+	"custom/music": {
+		"format": "{0}",
+		"return-type": "json",
+		"max-length": 40,
+		"escape": true,
+		"tooltip": true,
+		"exec": "~/.config/waybar/scripts/mediaplayer.py",
+		"on-click": "playerctl play-pause",
+		"on-scroll-up": "playerctl next",
+		"on-scroll-down": "playerctl previous"
+	},
+	/* NOTIFICATIONS */
+	"custom/notifications": {
+		"tooltip": false,
+		"format": "{icon}",
+		"format-icons": {
+			"notification": "󰀧",
+			"none": "󰀧",
+			"dnd-notification": "󰳤",
+			"dnd-none": "󰳤",
+			"inhibited-notification": "<sup></sup>",
+			"inhibited-none": "",
+			"dnd-inhibited-notification": "<sup></sup>",
+			"dnd-inhibited-none": ""
+		},
+		"return-type": "json",
+		"exec-if": "which swaync-client",
+		"exec": "swaync-client -swb",
+		"on-click": "sleep 0.1 && swaync-client -t -sw",
+		"on-click-right": "swaync-client -d -sw",
+		"escape": true
+	},
+	/* UPDATES */
+	"custom/updates": {
+		"format": "{icon}",
+		"return-type": "json",
+		"tooltip": true,
+		"format-icons": {
+			"pending-updates": "󰋠",
+			"updated": ""
+		},
+		"exec-if": "test -x ~/.config/waybar/scripts/dnf-updates.sh",
+		"exec": "~/.config/waybar/scripts/dnf-updates.sh",
+		"interval": 3600,
+		"hide-empty-text": true
+	},
+	/* LANG */
+	"sway/language": {
+		"format": "{short}"
+	},
+	/* WINDOW */
+	"sway/window": {
+		"format": "{}",
+		"max-length": 80,
+		"rewrite": {
+			"(.*) - Mozilla Firefox": "$1 󰈹",
+			"(.*) - Visual Studio Code": "$1 󰨞",
+			"(.*)Spotify": "Spotify 󰓇",
+			"(.*) - Obsidian": "Obsidian ",
+			"(.*)Steam": "Steam 󰓓"
+		}
+	},
+	/* CENTER — media when playing on this monitor, window title otherwise */
+	"custom/center-hdmi": {
+		"format": "{}",
+		"return-type": "json",
+		"max-length": 60,
+		"escape": true,
+		"exec": "~/.config/waybar/scripts/center-display.sh HDMI-A-2",
+		"interval": 2,
+		"on-click": "playerctl play-pause",
+		"on-scroll-up": "playerctl next",
+		"on-scroll-down": "playerctl previous"
+	},
+	"custom/center-dp6": {
+		"format": "{}",
+		"return-type": "json",
+		"max-length": 60,
+		"escape": true,
+		"exec": "~/.config/waybar/scripts/center-display.sh DP-6",
+		"interval": 2,
+		"on-click": "playerctl play-pause",
+		"on-scroll-up": "playerctl next",
+		"on-scroll-down": "playerctl previous"
+	},
+	/* WORKSPACES */
+	"sway/workspaces": {
+		"disable-scroll": false,
+		"all-outputs": false,
+		"format": "{name}",
+		"enable-bar-scroll": true
+	},
+	/* TRAY */
+	"tray": {
+		"icon-size": 16,
+		"spacing": 10
+	}
+}

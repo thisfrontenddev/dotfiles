@@ -5,7 +5,7 @@
 set $mod Mod1
 set $sup Mod4
 set $term ghostty
-set $menu wofi --show drun
+set $menu rofi -show drun
 
 # ─── NVIDIA environment ──────────────────────────────────────────────
 # Required for NVIDIA proprietary drivers on sway/wlroots
@@ -17,8 +17,8 @@ xwayland enable
 
 # ─── Output (monitors) ───────────────────────────────────────────────
 # Primary: 2560x1440 (DP-6)  Secondary: 1920x1080 (HDMI-A-2)
-output DP-6 bg ~/.config/sway/wallpapers/f43-night.png fill
-output HDMI-A-2 bg ~/.config/sway/wallpapers/f43-night.png fill
+output DP-6 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
+output HDMI-A-2 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
 
 # ─── Workspace-to-monitor assignments ────────────────────────────────
 # Secondary monitor (HDMI-A-2): 1-6, W
@@ -43,20 +43,29 @@ workspace P output DP-6
 workspace S output HDMI-A-2
 workspace F output DP-6
 workspace L output DP-6
+workspace G output DP-6
 
 # ─── Appearance ──────────────────────────────────────────────────────
-gaps inner 4
-gaps outer 8
+gaps inner 6
+gaps outer 16
 default_border pixel 2
 default_floating_border pixel 2
 font pango:monospace 10
 
-# Catppuccin Mocha-ish border colors
+# CYBRland border colors
 #                       border  bg      text    indicator child_border
-client.focused          #89b4fa #89b4fa #1e1e2e #f5c2e7   #89b4fa
-client.focused_inactive #45475a #45475a #cdd6f4 #45475a   #45475a
-client.unfocused        #313244 #313244 #cdd6f4 #313244   #313244
-client.urgent           #f38ba8 #f38ba8 #1e1e2e #f38ba8   #f38ba8
+client.focused          #F24848 #F24848 #030408 #F24848   #F24848
+client.focused_inactive #331215 #331215 #898D99 #331215   #331215
+client.unfocused        #05070D #05070D #898D99 #05070D   #05070D
+client.urgent           #F2D230 #F2D230 #030408 #F2D230   #F2D230
+
+# ─── SwayFX effects ─────────────────────────────────────────────────
+# (requires SwayFX — log out & back in after install)
+corner_radius 0
+shadows enable
+shadow_blur_radius 30
+shadow_color #F2484860
+shadow_inactive_color #03040830
 
 # ─── Input ───────────────────────────────────────────────────────────
 input type:keyboard {
@@ -71,6 +80,7 @@ assign [app_id="com.mitchellh.ghostty"] T
 assign [app_id="ghostty"] T
 assign [app_id="firefox"] W
 assign [class="firefox"] W
+assign [app_id="app.zen_browser.zen"] W
 assign [app_id="com.slack.Slack"] S
 assign [class="Slack"] S
 assign [app_id="md.obsidian.Obsidian"] N
@@ -80,6 +90,20 @@ assign [class="Spotify"] M
 assign [app_id="thunar"] F
 assign [app_id="nautilus"] F
 assign [class="1Password"] L
+assign [class="Steam"] G
+
+# ─── Picture-in-Picture ──────────────────────────────────────────────
+# Float + sticky so PiP stays on top across all workspaces
+for_window [app_id="firefox" title="^Picture-in-Picture$"] floating enable, sticky enable, border pixel 2
+for_window [app_id="app.zen_browser.zen" title="^Picture-in-Picture$"] floating enable, sticky enable, border pixel 2
+
+# Inhibit idle while PiP is active (prevents screen lock during video)
+for_window [app_id="firefox" title="^Picture-in-Picture$"] inhibit_idle visible
+for_window [class="Steam" title="^Friends"] floating enable
+for_window [class="Steam" title="^Steam - News"] floating enable
+for_window [app_id="app.zen_browser.zen" title="^Picture-in-Picture$"] inhibit_idle visible
+for_window [class="Steam" title="^Friends"] floating enable
+for_window [class="Steam" title="^Steam - News"] floating enable
 
 # ─── Workspace switching ─────────────────────────────────────────────
 # Numbered workspaces
@@ -104,6 +128,7 @@ bindsym $mod+p workspace P
 bindsym $mod+m workspace M
 bindsym $mod+f workspace F
 bindsym $mod+l workspace L
+bindsym $mod+g workspace G
 
 # ─── Move window to workspace ────────────────────────────────────────
 bindsym $mod+Shift+1 move container to workspace 1; workspace 1
@@ -126,6 +151,7 @@ bindsym $mod+Shift+p move container to workspace P; workspace P
 bindsym $mod+Shift+m move container to workspace M; workspace M
 bindsym $mod+Shift+f move container to workspace F; workspace F
 bindsym $mod+Shift+l move container to workspace L; workspace L
+bindsym $mod+Shift+g move container to workspace G; workspace G
 
 # ─── Focus navigation (Ctrl+Alt+HJKL) ───────────────────────────────
 bindsym Ctrl+$mod+h focus left
@@ -180,21 +206,22 @@ bindsym Ctrl+$mod+Shift+e exec swaynag -t warning \
 # ─── Floating window controls ────────────────────────────────────────
 floating_modifier $mod normal
 
-# ─── Screenshots ─────────────────────────────────────────────────────
-bindsym Print exec grim - | wl-copy
-bindsym Shift+Print exec grim -g "$(slurp)" - | wl-copy
+# ─── Screenshots (grim + satty) ──────────────────────────────────────
+bindsym $sup+Shift+3 exec grim - | satty -f - --copy-command wl-copy --output-filename ~/Pictures/Screenshots/$(date +%Y%m%d-%H%M%S).png --actions-on-enter save-to-clipboard --actions-on-enter save-to-file --actions-on-enter exit --early-exit
+bindsym $sup+Shift+4 exec grim -g "$(slurp)" - | satty -f - --copy-command wl-copy --output-filename ~/Pictures/Screenshots/$(date +%Y%m%d-%H%M%S).png --actions-on-enter save-to-clipboard --actions-on-enter save-to-file --actions-on-enter exit --early-exit
 
 # ─── Idle / Lock ─────────────────────────────────────────────────────
 exec swayidle -w \
-    timeout 300 'swaylock -f -c 1e1e2e' \
+    timeout 300 'swaylock -f -c 030408' \
     timeout 600 'swaymsg "output * power off"' \
     resume 'swaymsg "output * power on"' \
-    before-sleep 'swaylock -f -c 1e1e2e'
+    before-sleep 'swaylock -f -c 030408'
 
-bindsym $sup+l exec swaylock -f -c 1e1e2e
+bindsym $sup+l exec swaylock -f -c 030408
 
-# ─── Notifications ───────────────────────────────────────────────────
-exec mako
+# ─── Notifications (swaync) ──────────────────────────────────────────
+exec swaync
+bindsym $sup+n exec swaync-client -t -sw
 
 # ─── Status bar ──────────────────────────────────────────────────────
 bar {

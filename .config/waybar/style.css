@@ -1,93 +1,416 @@
-/* Catppuccin Mocha-inspired waybar theme */
+/*
+# ---------------------------------------
+# CYBRbar     waybar theme (part of cybrland)
+# Adapted for Fedora + Sway by void
+# Original:   https://github.com/scherrer-txt/cybrland
+# Author:     scherrer-txt   |   License:     GPL-3.0
+# ---------------------------------------
+*/
+
+/* === VARIABLES === */
+
+@define-color no0 #030408;
+@define-color no1 #05070D;
+@define-color no2 #0A0E1A;
+
+@define-color re0 #F24848;
+@define-color re1 #631F21;
+@define-color re2 #331215;
+
+@define-color gr0 #30F291;
+@define-color gr1 #15633F;
+@define-color gr2 #0C3423;
+
+@define-color ye0 #F2D230;
+@define-color ye1 #635618;
+@define-color ye2 #332D10;
+
+@define-color bl0 #3061F2;
+@define-color bl1 #152966;
+@define-color bl2 #0C1737;
+
+@define-color vi0 #A130F2;
+@define-color vi1 #421666;
+@define-color vi2 #230D37;
+
+@define-color cy0 #29BECC;
+@define-color cy1 #124E56;
+@define-color cy2 #0B292F;
+
+@define-color wh0 #898D99;
+@define-color wh1 #393B42;
+@define-color wh2 #1E2025;
+
+@define-color me0 #4D5A80;
+@define-color me1 #212638;
+@define-color me2 #0D1120;
+
+@define-color or0 #F26118;
+@define-color or1 #63290E;
+@define-color or2 #33170B;
+
+@define-color pi0 #F230B2;
+@define-color pi1 #63164C;
+@define-color pi2 #330D2A;
+
+
+/* === GLOBAL === */
 
 * {
-    font-family: "JetBrains Mono", "FiraCode Nerd Font", monospace;
-    font-size: 13px;
-    min-height: 0;
+	font-family: GeistMono Nerd Font;
+	font-size: 15px;
+	letter-spacing: -0.05em;
+	font-weight: 400;
+	min-height: 0;
 }
 
 window#waybar {
-    background-color: #1e1e2e;
-    color: #cdd6f4;
-    border-bottom: 2px solid #313244;
+	background: transparent;
+	opacity: 1;
+}
+
+window#waybar.hidden {
+	opacity: 0;
+}
+
+
+/* === MODULE DEFAULTS === */
+
+#custom-updates,
+#custom-music,
+#custom-center-hdmi,
+#custom-center-dp6,
+#custom-logo,
+#workspaces,
+#window {
+	background-color: transparent;
+	border: none;
+	border-radius: 0;
+	padding: 0 16px;
+	color: @re0;
+}
+
+
+/* === BUTTON SIZE === */
+
+#tray,
+#custom-brightness,
+#language,
+#bluetooth,
+#custom-cpu,
+#custom-gpu,
+#custom-wf-recorder,
+#custom-updates,
+#custom-notifications,
+#pulseaudio,
+#network,
+#custom-memory,
+#battery,
+#backlight {
+	padding: 0 16px;
+	min-width: 15px;
+}
+
+
+/* === POWERLINE ARROWS === */
+
+#custom-arrow-left-no1 {
+	background-image: url('svg/no1-left.svg');
+	background-position: left;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+#custom-arrow-right-no1 {
+	background-image: url('svg/no1-right.svg');
+	background-position: right;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+#custom-arrow-left-re0 {
+	background-image: url('svg/re0-left.svg');
+	background-position: left;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-color: @no1;
+}
+
+#custom-arrow-right-re0 {
+	background-image: url('svg/re0-right.svg');
+	background-position: right;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-color: @no1;
+}
+
+#custom-arrow-left-gr0 {
+	background-image: url('svg/gr0-left.svg');
+	background-position: left;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-color: @no1;
+}
+
+#custom-arrow-right-gr0 {
+	background-image: url('svg/gr0-right.svg');
+	background-position: right;
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-color: @no1;
+}
+
+
+/* === LOGO (icon + diagonal edge) === */
+
+#custom-logo {
+	color: @no0;
+	background-color: transparent;
+	background-image: url('svg/logo-bg-re0.svg');
+	background-size: 100% 100%;
+	background-repeat: no-repeat;
+	font-weight: bold;
+	padding-right: 24px;
+}
+
+#custom-logo:hover {
+	color: @no0;
+	background-image: url('svg/logo-bg-gr0.svg');
+}
+
+
+/* === WORKSPACES === */
+
+#workspaces {
+	background-color: @no1;
+	border: none;
 }
 
 #workspaces button {
-    padding: 0 8px;
-    color: #6c7086;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    border-bottom: 2px solid transparent;
+	border-radius: 0;
+	border: none;
+	margin: 0;
+	min-width: 30px;
+	font-weight: bolder;
+	color: @re0;
+	background: transparent;
+}
+
+#workspaces button label {
+	font-size: 15px;
+	padding: 0 10px;
+	color: @re0;
+}
+
+#workspaces button.focused label {
+	color: @gr0;
 }
 
 #workspaces button:hover {
-    background: #313244;
-    color: #cdd6f4;
+	background-color: @re2;
 }
 
-#workspaces button.focused {
-    color: #89b4fa;
-    border-bottom: 2px solid #89b4fa;
+#workspaces button:hover label {
+	color: @re0;
+}
+
+#workspaces button.focused:hover {
+	background-color: @gr2;
+}
+
+#workspaces button.focused label {
+	color: @gr0;
 }
 
 #workspaces button.urgent {
-    color: #f38ba8;
-    border-bottom: 2px solid #f38ba8;
+	background-color: @ye0;
 }
 
-#mode {
-    color: #f38ba8;
-    font-weight: bold;
-    padding: 0 8px;
+#workspaces button.urgent label {
+	color: @ye2;
 }
 
-#clock,
-#cpu,
-#memory,
-#network,
-#pulseaudio,
-#tray {
-    padding: 0 10px;
+/* === CLOCKS === */
+
+#clock.time,
+#clock.date {
+	color: @re0;
+	background-color: @no1;
+	padding: 0 32px;
 }
 
-#clock {
-    color: #cdd6f4;
-    font-weight: bold;
+#clock.time:hover,
+#clock.date:hover {
+	color: @gr0;
+	background-color: @no1;
 }
 
-#cpu {
-    color: #a6e3a1;
+
+/* === SYSTEM METRICS === */
+
+#custom-cpu,
+#custom-memory,
+#custom-gpu {
+	color: @re0;
+	background-color: @no1;
 }
 
-#memory {
-    color: #f9e2af;
+#temperature.critical {
+	color: @no0;
+	background-color: @ye0;
 }
+
+#custom-cpu:hover,
+#custom-memory:hover,
+#custom-gpu:hover {
+	color: @gr0;
+	background-color: @no1;
+}
+
+
+/* === NETWORK & AUDIO === */
 
 #network {
-    color: #89dceb;
+	background-color: @no1;
+	color: @re0;
 }
 
 #network.disconnected {
-    color: #f38ba8;
+	color: @wh0;
+	background-color: @or0;
+}
+
+#network.linked {
+	color: @gr0;
+	background-color: @no1;
 }
 
 #pulseaudio {
-    color: #cba6f7;
+	color: @re0;
+	background-color: @no1;
 }
 
 #pulseaudio.muted {
-    color: #6c7086;
+	color: @re1;
+}
+
+#network:hover,
+#pulseaudio:hover {
+	color: @gr0;
+	background-color: @no1;
+}
+
+#pulseaudio.muted:hover {
+	color: @gr0;
+	background-color: @no1;
+}
+
+
+/* === MUSIC === */
+
+#custom-music {
+	background-color: @gr0;
+	color: @no0;
+	padding: 0 32px;
+	border: none;
+}
+
+
+/* === NOTIFICATIONS === */
+
+#custom-notifications {
+	background-color: @no1;
+	color: @re1;
+	font-size: 20px;
+}
+
+#custom-notifications:hover {
+	color: @gr0;
+	background-color: @no1;
+}
+
+#custom-notifications.dnd-none {
+	color: @re1;
+}
+
+#custom-notifications.dnd-none:hover {
+	color: @gr0;
+	background-color: @no1;
+}
+
+/* === UPDATES === */
+
+#custom-updates {
+	color: @wh0;
+	font-size: 20px;
+	margin: 0 20px;
+}
+
+#custom-updates:hover {
+	background-color: @gr1;
+}
+
+
+/* === MISC === */
+
+#custom-wf-recorder {
+	color: @re0;
+	background-color: @no1;
+}
+
+#bluetooth {
+	color: @re0;
+	background-color: @no1;
+}
+
+#language {
+	color: @re0;
+	background-color: @no1;
 }
 
 #tray {
-    padding: 0 5px;
+	color: @re0;
+	background-color: @no1;
 }
 
-#tray > .passive {
-    -gtk-icon-effect: dim;
+#custom-wf-recorder:hover,
+#bluetooth:hover,
+#language:hover {
+	color: @gr0;
+	background-color: @no1;
 }
 
-#tray > .needs-attention {
-    -gtk-icon-effect: highlight;
+/* === WINDOW === */
+
+#window {
+	color: @no0;
+	background-color: @re0;
+	padding: 0 32px;
+	border: none;
+}
+
+/* === CENTER (media or window title) === */
+
+#custom-center-hdmi.window,
+#custom-center-dp6.window {
+	color: @no0;
+	background-color: @re0;
+	background-image: url('svg/center-left-re0.svg'), url('svg/center-right-re0.svg');
+	background-position: left, right;
+	background-size: 14px 31px, 14px 31px;
+	background-repeat: no-repeat, no-repeat;
+	padding: 0 32px;
+	border: none;
+}
+
+#custom-center-hdmi.music,
+#custom-center-dp6.music {
+	color: @no0;
+	background-color: @gr0;
+	background-image: url('svg/center-left-gr0.svg'), url('svg/center-right-gr0.svg');
+	background-position: left, right;
+	background-size: 14px 31px, 14px 31px;
+	background-repeat: no-repeat, no-repeat;
+	padding: 0 32px;
+	border: none;
 }
