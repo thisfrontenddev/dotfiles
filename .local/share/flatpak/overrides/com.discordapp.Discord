@@ -1,0 +1,4 @@
+[Environment]
+__GLX_VENDOR_LIBRARY_NAME=mesa
+LIBVA_DRIVER_NAME=radeonsi
+DRI_PRIME=pci-0000_11_00_0
