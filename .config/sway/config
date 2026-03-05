@@ -37,7 +37,7 @@ workspace 9 output DP-6
 workspace 10 output DP-6
 workspace C output DP-6
 workspace T output DP-6
-workspace M output DP-6
+workspace M output HDMI-A-2
 workspace N output DP-6
 workspace P output DP-6
 workspace S output HDMI-A-2
@@ -95,6 +95,8 @@ assign [app_id="md.obsidian.Obsidian"] N
 assign [class="obsidian"] N
 assign [app_id="Spotify"] M
 assign [class="Spotify"] M
+assign [app_id="Cider"] M
+assign [class="Cider"] M
 assign [app_id="thunar"] F
 assign [app_id="nautilus"] F
 assign [class="1Password"] L
