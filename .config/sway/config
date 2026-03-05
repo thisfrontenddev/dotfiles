@@ -17,8 +17,8 @@ xwayland enable
 
 # ─── Output (monitors) ───────────────────────────────────────────────
 # Primary: 2560x1440 (DP-6)  Secondary: 1920x1080 (HDMI-A-2)
-output DP-6 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
-output HDMI-A-2 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
+output DP-6 pos 0 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
+output HDMI-A-2 pos 2560 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
 
 # ─── Workspace-to-monitor assignments ────────────────────────────────
 # Secondary monitor (HDMI-A-2): 1-6, W
@@ -62,10 +62,18 @@ client.urgent           #F2D230 #F2D230 #030408 #F2D230   #F2D230
 # ─── SwayFX effects ─────────────────────────────────────────────────
 # (requires SwayFX — log out & back in after install)
 corner_radius 0
+blur enable
+blur_passes 2
+blur_radius 3
 shadows enable
 shadow_blur_radius 30
 shadow_color #F2484860
 shadow_inactive_color #03040830
+# layer_effects applied via swaymsg (block syntax broken in 0.5.2 config)
+exec_always swaymsg 'layer_effects "swaync-notification-window" blur enable'
+exec_always swaymsg 'layer_effects "swaync-notification-window" blur_ignore_transparent enable'
+exec_always swaymsg 'layer_effects "swaync-control-center" blur enable'
+exec_always swaymsg 'layer_effects "swaync-control-center" blur_ignore_transparent enable'
 
 # ─── Input ───────────────────────────────────────────────────────────
 input type:keyboard {
@@ -205,6 +213,10 @@ bindsym Ctrl+$mod+Shift+e exec swaynag -t warning \
 
 # ─── Floating window controls ────────────────────────────────────────
 floating_modifier $mod normal
+
+# ─── Audio switcher ──────────────────────────────────────────────────
+bindsym $sup+a exec ~/scripts/audio-switch.sh output
+bindsym $sup+Shift+a exec ~/scripts/audio-switch.sh input
 
 # ─── Screenshots (grim + satty) ──────────────────────────────────────
 bindsym $sup+Shift+3 exec grim - | satty -f - --copy-command wl-copy --output-filename ~/Pictures/Screenshots/$(date +%Y%m%d-%H%M%S).png --actions-on-enter save-to-clipboard --actions-on-enter save-to-file --actions-on-enter exit --early-exit
