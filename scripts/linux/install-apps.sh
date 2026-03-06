@@ -46,7 +46,7 @@ run_step "System packages" bash -c '
 run_step "Sway ecosystem" bash -c '
   echo "==> Installing Sway ecosystem..."
   sudo dnf install -y --skip-unavailable \
-    swayfx waybar wofi SwayNotificationCenter swaybg swaylock swayidle \
+    swayfx waybar rofi SwayNotificationCenter swaybg swaylock swayidle \
     grim slurp wl-clipboard sway-systemd
 '
 
