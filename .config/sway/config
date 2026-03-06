@@ -100,7 +100,7 @@ assign [app_id="Cider"] M
 assign [class="Cider"] M
 assign [app_id="thunar"] F
 assign [app_id="nautilus"] F
-assign [class="1Password"] L
+assign [class="LM Studio"] L
 assign [class="Steam"] G
 assign [app_id="com.moonlight_stream.Moonlight"] O
 

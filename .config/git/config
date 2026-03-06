@@ -7,6 +7,7 @@
 [user]
 	name = Eric Martin
 	email = eric.martin@hey.com
+	signingkey = /home/void/.ssh/id_ed25519.pub
 [init]
 	defaultBranch = main
 	templateDir = ~/.config/git/template
@@ -63,3 +64,7 @@
 # Any repo inside ~/work/ will use the work-specific config
 [includeIf "gitdir:~/work/goldbroker/"]
 	path = ~/.config/git/config-work
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true

@@ -27,8 +27,7 @@ else
   export PNPM_HOME="$HOME/.local/share/pnpm"
 
   path=(
-    /home/linuxbrew/.linuxbrew/bin
-    /home/linuxbrew/.linuxbrew/sbin
+    $HOME/.nix-profile/bin
     $HOME/.cargo/bin
     $HOME/.local/share/pnpm
     $HOME/.local/bin

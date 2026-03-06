@@ -52,17 +52,9 @@ case "$DISTRO" in
     ;;
 esac
 
-# ── Step 2: Homebrew (for tools not in distro repos) ──
-echo "==> Setting up Homebrew..."
-if ! command -v brew &>/dev/null; then
-  echo "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-fi
-
-# Install CLI-only formulae from Brewfile
-echo "==> Installing Homebrew formulae..."
-brew bundle install --no-lock --file="$SCRIPTS_DIR/../Brewfile.common" 2>/dev/null || true
+# ── Step 2: Nix + Home Manager (declarative package management) ──
+echo "==> Setting up Nix..."
+bash "$SCRIPTS_DIR/setup-nix.sh"
 
 # ── Step 3: Clone dotfiles (if not already present) ──
 if [[ ! -d "$HOME/.cfg" ]]; then

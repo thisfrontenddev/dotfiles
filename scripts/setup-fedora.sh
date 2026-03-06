@@ -113,6 +113,10 @@ if [[ ! -f "$WALLPAPER_DIR/f43-night.png" ]]; then
   fi
 fi
 
+# ── 8. System hardening ──
+step "Applying system hardening"
+bash "$SCRIPTS_DIR/harden-fedora.sh"
+
 echo ""
 echo "=== Fedora setup complete! ==="
 echo ""

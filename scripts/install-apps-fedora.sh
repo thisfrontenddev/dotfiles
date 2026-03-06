@@ -43,7 +43,7 @@ run_step "System packages" bash -c '
 run_step "Sway ecosystem" bash -c '
   echo "==> Installing Sway ecosystem..."
   sudo dnf install -y --skip-unavailable \
-    swayfx waybar wofi mako swaybg swaylock swayidle \
+    swayfx waybar wofi SwayNotificationCenter swaybg swaylock swayidle \
     grim slurp wl-clipboard sway-systemd
 '
 
@@ -182,12 +182,8 @@ run_step "Claude Code CLI" bash -c '
   if command -v claude &>/dev/null; then
     echo "    Claude CLI already installed"
   else
-    if ! command -v fnm &>/dev/null && [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    fi
-
     if ! command -v fnm &>/dev/null; then
-      echo "    ERROR: fnm not found — install Homebrew + fnm first (brew install fnm)"
+      echo "    ERROR: fnm not found — install Nix + Home Manager first (setup-nix.sh)"
       exit 1
     fi
 
