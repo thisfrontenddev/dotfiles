@@ -19,6 +19,9 @@ if ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
   echo "==> Tuning DNF config..."
   echo 'max_parallel_downloads=10' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
 fi
+if ! grep -q 'installonly_limit' /etc/dnf/dnf.conf; then
+  echo 'installonly_limit=2' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+fi
 
 # ── Drivers (NVIDIA, RPM Fusion) ──
 run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers-fedora.sh"
