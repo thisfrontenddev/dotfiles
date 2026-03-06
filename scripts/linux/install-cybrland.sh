@@ -1,6 +1,6 @@
 #!/bin/bash
 # install-cybrland.sh — Reproducible setup for cybrland theme on Fedora + Sway
-# Run: bash ~/scripts/install-cybrland.sh
+# Run: bash ~/scripts/linux/install-cybrland.sh
 set -euo pipefail
 
 # Prevent running as root (sudo expands $HOME to /root)
@@ -120,4 +120,4 @@ swaync-client -rs 2>/dev/null || true
 
 echo ""
 echo "=== CYBRland theme installed! ==="
-echo "Revert anytime with: bash ~/scripts/revert-catppuccin.sh"
+echo "Revert anytime with: bash ~/scripts/linux/revert-catppuccin.sh"

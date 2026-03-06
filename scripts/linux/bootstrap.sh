@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+SHARED_DIR="$(cd "$SCRIPTS_DIR/../shared" && pwd)"
 
 echo "=== Linux Bootstrap ==="
 
@@ -18,7 +19,7 @@ fi
 echo "==> Installing system packages..."
 case "$DISTRO" in
   fedora)
-    # Base packages only — full Fedora installs handled by setup-fedora.sh
+    # Base packages only — full Fedora installs handled by linux/setup.sh
     sudo dnf install -y --skip-unavailable \
       zsh git gcc gcc-c++ cmake fontconfig curl
     ;;
@@ -54,7 +55,7 @@ esac
 
 # ── Step 2: Nix + Home Manager (declarative package management) ──
 echo "==> Setting up Nix..."
-bash "$SCRIPTS_DIR/setup-nix.sh"
+bash "$SHARED_DIR/setup-nix.sh"
 
 # ── Step 3: Clone dotfiles (if not already present) ──
 if [[ ! -d "$HOME/.cfg" ]]; then
@@ -76,7 +77,7 @@ ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
 ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
 
 # ── Step 5: Rust ──
-bash "$SCRIPTS_DIR/rust.sh"
+bash "$SHARED_DIR/rust.sh"
 
 # ── Step 6: Create required directories ──
 mkdir -p "$HOME/.local/state/zsh"
@@ -122,7 +123,7 @@ fi
 # ── Step 10: Fedora-specific setup ──
 if [[ "$DISTRO" == "fedora" ]]; then
   echo "==> Running Fedora setup..."
-  bash "$SCRIPTS_DIR/setup-fedora.sh"
+  bash "$SCRIPTS_DIR/setup.sh"
 fi
 
 echo ""

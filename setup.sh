@@ -6,11 +6,11 @@ SCRIPTS_DIR="$(cd "$(dirname "$0")/scripts" && pwd)"
 case "$(uname -s)" in
   Darwin)
     echo "=== macOS Setup ==="
-    bash "$SCRIPTS_DIR/bootstrap.sh"
+    bash "$SCRIPTS_DIR/macos/bootstrap.sh"
     ;;
   Linux)
     echo "=== Linux Setup ==="
-    bash "$SCRIPTS_DIR/bootstrap-linux.sh"
+    bash "$SCRIPTS_DIR/linux/bootstrap.sh"
     ;;
   *)
     echo "Unsupported OS: $(uname -s)"

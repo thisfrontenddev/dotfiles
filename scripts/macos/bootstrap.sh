@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+SHARED_DIR="$(cd "$SCRIPTS_DIR/../shared" && pwd)"
 
 echo "=== MacBook Bootstrap ==="
 
@@ -34,7 +35,7 @@ ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
 ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
 
 # --- Step 5: Rust (uses existing script) ---
-bash "$SCRIPTS_DIR/rust.sh"
+bash "$SHARED_DIR/rust.sh"
 
 # --- Step 6: Create required directories ---
 mkdir -p "$HOME/.local/state/zsh"

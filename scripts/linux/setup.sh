@@ -14,7 +14,7 @@ echo "=== Fedora System Setup ==="
 
 # ── 1. Install packages and apps ──
 step "Installing packages and apps"
-bash "$SCRIPTS_DIR/install-apps-fedora.sh"
+bash "$SCRIPTS_DIR/install-apps.sh"
 
 # ── 2. Dark mode + system fonts ──
 step "Enabling dark mode and setting system fonts"
@@ -115,7 +115,7 @@ fi
 
 # ── 8. System hardening ──
 step "Applying system hardening"
-bash "$SCRIPTS_DIR/harden-fedora.sh"
+bash "$SCRIPTS_DIR/harden.sh"
 
 echo ""
 echo "=== Fedora setup complete! ==="

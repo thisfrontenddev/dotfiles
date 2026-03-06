@@ -240,5 +240,34 @@ EOF
   info "Flatpak weekly auto-update enabled"
 fi
 
+# ── 13. fail2ban (SSH brute-force protection) ──
+step "Configuring fail2ban"
+if ! rpm -q fail2ban &>/dev/null; then
+  sudo dnf install -y fail2ban
+fi
+JAIL_LOCAL="/etc/fail2ban/jail.local"
+if [[ -f "$JAIL_LOCAL" ]]; then
+  info "fail2ban jail.local already configured"
+else
+  sudo tee "$JAIL_LOCAL" > /dev/null << 'EOF'
+[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+EOF
+  info "fail2ban jail.local created (5 attempts / 10min → 1h ban)"
+fi
+sudo systemctl enable fail2ban
+# Only start if sshd is active — otherwise it just sits ready
+if systemctl is-active sshd &>/dev/null; then
+  sudo systemctl start fail2ban
+  info "fail2ban started (sshd is running)"
+else
+  info "fail2ban enabled but not started (sshd is inactive)"
+fi
+
 echo ""
 echo "=== Fedora hardening complete! ==="

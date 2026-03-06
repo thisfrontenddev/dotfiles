@@ -10,3 +10,6 @@ alias ll="eza --git --long --group --icons=auto --group-directories-first --all"
 
 alias defaultnode="fnm use system"
 
+alias docker="podman"
+alias docker-compose="podman-compose"
+

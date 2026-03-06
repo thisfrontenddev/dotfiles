@@ -24,7 +24,7 @@ if ! grep -q 'installonly_limit' /etc/dnf/dnf.conf; then
 fi
 
 # ── Drivers (NVIDIA, RPM Fusion) ──
-run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers-fedora.sh"
+run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers.sh"
 
 # ── System packages (dnf) ──
 run_step "System packages" bash -c '

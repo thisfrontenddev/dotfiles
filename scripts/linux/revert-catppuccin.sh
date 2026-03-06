@@ -1,6 +1,6 @@
 #!/bin/bash
 # revert-catppuccin.sh — Restore Catppuccin Mocha configs from backup
-# Run: bash ~/scripts/revert-catppuccin.sh
+# Run: bash ~/scripts/linux/revert-catppuccin.sh
 set -euo pipefail
 
 BACKUP_DIR="$HOME/.config/theme-backup/catppuccin"
