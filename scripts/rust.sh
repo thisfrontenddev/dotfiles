@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
 
-function is_rust_installed() {
-    if ! which cargo &>/dev/null; then
-        return 1
-    fi
-    return 0
-}
+# Ensure Nix profile is in PATH (rustup is installed via Home Manager)
+if [[ -d "$HOME/.nix-profile/bin" ]]; then
+    export PATH="$HOME/.nix-profile/bin:$PATH"
+fi
 
-
-function rustup_init() {
-    echo "Asking rustup to use rust stable version as default..."
-    if ! is_rust_installed; then
-        echo "\`cargo\` not found ! Skipping rust initialization..."
-    else
-        rustup default stable 
-    fi
-}
-
-rustup_init
+if command -v rustup &>/dev/null; then
+    echo "Setting rust stable as default toolchain..."
+    rustup default stable
+else
+    echo "rustup not found — install via Nix/Home Manager first"
+fi

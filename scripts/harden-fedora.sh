@@ -20,7 +20,19 @@ else
   info "Hostname set to blackwall"
 fi
 
-# ── 2. DNS-over-TLS (Cloudflare) ──
+# ── 2. Firewall (firewalld) ──
+step "Enabling firewall"
+if systemctl is-active firewalld &>/dev/null; then
+  info "firewalld already running"
+else
+  sudo systemctl enable --now firewalld
+  info "firewalld started and enabled"
+fi
+# Ensure default zone drops unsolicited inbound
+ZONE=$(sudo firewall-cmd --get-default-zone)
+info "Default zone: $ZONE"
+
+# ── 3. DNS-over-TLS (Cloudflare) ──
 step "Configuring DNS-over-TLS (Cloudflare)"
 DNS_CONF="/etc/systemd/resolved.conf.d/dns-over-tls.conf"
 sudo mkdir -p /etc/systemd/resolved.conf.d
@@ -51,7 +63,7 @@ for conn in "Wired connection 1" "SFR_0020"; do
   fi
 done
 
-# ── 3. NVIDIA persistence mode ──
+# ── 4. NVIDIA persistence mode ──
 step "Enabling NVIDIA persistence mode"
 if systemctl is-enabled nvidia-persistenced &>/dev/null; then
   info "nvidia-persistenced already enabled"
@@ -60,13 +72,13 @@ else
   info "nvidia-persistenced enabled"
 fi
 
-# ── 4. Snapper timers ──
+# ── 5. Snapper timers ──
 step "Enabling Snapper snapshot timers"
 sudo systemctl enable --now snapper-timeline.timer 2>/dev/null || true
 sudo systemctl enable --now snapper-cleanup.timer 2>/dev/null || true
 info "Snapper timeline + cleanup timers active"
 
-# ── 5. Btrfs scrub timer ──
+# ── 6. Btrfs scrub timer ──
 step "Enabling Btrfs scrub timer"
 if [[ ! -f /etc/systemd/system/btrfs-scrub.timer ]]; then
   sudo tee /etc/systemd/system/btrfs-scrub.service > /dev/null << 'SCRUBSVC'
@@ -94,7 +106,7 @@ fi
 sudo systemctl enable --now btrfs-scrub.timer 2>/dev/null || true
 info "Btrfs monthly scrub enabled for /"
 
-# ── 6. Sysctl tuning ──
+# ── 7. Sysctl tuning ──
 step "Applying sysctl tuning"
 SYSCTL_FILE="/etc/sysctl.d/99-dev-workstation.conf"
 if [[ -f "$SYSCTL_FILE" ]] && grep -q "vm.swappiness" "$SYSCTL_FILE"; then
@@ -116,7 +128,7 @@ EOF
   info "Sysctl tuning applied"
 fi
 
-# ── 7. Disable WiFi autoconnect (ethernet preferred) ──
+# ── 8. Disable WiFi autoconnect (ethernet preferred) ──
 step "Disabling WiFi autoconnect"
 if nmcli connection show "SFR_0020" &>/dev/null; then
   AUTOCONNECT=$(nmcli -g connection.autoconnect connection show "SFR_0020")
@@ -130,7 +142,7 @@ else
   info "No SFR_0020 WiFi profile found — skipping"
 fi
 
-# ── 8. Journald size limit ──
+# ── 9. Journald size limit ──
 step "Setting journald size limit"
 JOURNAL_CONF="/etc/systemd/journald.conf.d/size.conf"
 sudo mkdir -p /etc/systemd/journald.conf.d
@@ -145,7 +157,7 @@ EOF
   info "Journald capped at 500M"
 fi
 
-# ── 9. Automatic security updates ──
+# ── 10. Automatic security updates ──
 step "Enabling automatic security updates"
 if ! rpm -q dnf5-plugin-automatic &>/dev/null; then
   sudo dnf install -y dnf5-plugin-automatic
@@ -160,7 +172,7 @@ fi
 sudo systemctl enable --now dnf5-automatic.timer 2>/dev/null || true
 info "dnf5-automatic enabled (security updates only)"
 
-# ── 10. Git commit signing (SSH key) ──
+# ── 11. Git commit signing (SSH key) ──
 step "Configuring git commit signing"
 if [[ "$(git config --global gpg.format 2>/dev/null)" == "ssh" ]]; then
   info "Git SSH signing already configured"
@@ -182,6 +194,50 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
   fi
 else
   info "gh not authenticated — add SSH signing key to GitHub manually"
+fi
+# Set up allowed_signers for signature verification
+SIGNERS_FILE="$HOME/.config/git/allowed_signers"
+if [[ -f "$SIGNERS_FILE" ]]; then
+  info "allowed_signers already exists"
+else
+  mkdir -p "$HOME/.config/git"
+  EMAIL=$(git config --global user.email)
+  echo "$EMAIL $(cat ~/.ssh/id_ed25519.pub)" > "$SIGNERS_FILE"
+  git config --global gpg.ssh.allowedSignersFile "$SIGNERS_FILE"
+  info "allowed_signers created for $EMAIL"
+fi
+
+# ── 12. Flatpak auto-update timer ──
+step "Enabling Flatpak auto-update"
+FLATPAK_SERVICE="$HOME/.config/systemd/user/flatpak-update.service"
+FLATPAK_TIMER="$HOME/.config/systemd/user/flatpak-update.timer"
+if [[ -f "$FLATPAK_TIMER" ]]; then
+  info "Flatpak auto-update timer already exists"
+else
+  mkdir -p "$HOME/.config/systemd/user"
+  cat > "$FLATPAK_SERVICE" << 'EOF'
+[Unit]
+Description=Update Flatpak apps
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak update -y --noninteractive
+EOF
+  cat > "$FLATPAK_TIMER" << 'EOF'
+[Unit]
+Description=Weekly Flatpak update
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
+EOF
+  systemctl --user daemon-reload
+  systemctl --user enable --now flatpak-update.timer
+  info "Flatpak weekly auto-update enabled"
 fi
 
 echo ""

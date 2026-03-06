@@ -113,6 +113,8 @@ run_step "Flatpak apps" bash -c '
     md.obsidian.Obsidian
     com.discordapp.Discord
     com.obsproject.Studio
+    com.moonlight_stream.Moonlight
+    net.davidotek.pupgui2
   )
 
   for app in "${FLATPAKS[@]}"; do
