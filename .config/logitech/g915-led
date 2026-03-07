@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-g915-led: Control Logitech G915 TKL backlighting on Linux.
+g915-led: Control Logitech G915 keyboard backlighting.
 
-Requires sudo for driver unbind/rebind.
+May require sudo for HID driver binding.
 Protocol reverse-engineered from OpenRGB (GPL-2.0).
 
 Usage:
@@ -22,9 +22,16 @@ import os
 import sys
 import time
 
-# --- HID++ protocol constants (from OpenRGB) ---
-DEV_INDEX_WIRED = 0xFF
-DEV_INDEX_WIRELESS = 0x01
+# --- Device identification ---
+VENDOR_ID = 0x046D  # Logitech
+SUPPORTED_PIDS = {
+    0xC343: "G915 TKL (wired)",
+    0xC545: "G915 TKL (wireless receiver)",
+    0xC33E: "G915 full-size (wired)",
+}
+# PID hex strings for sysfs matching
+_PID_STRINGS = {f"{pid:04X}" for pid in SUPPORTED_PIDS}
+_VENDOR_STRING = f"{VENDOR_ID:04X}"
 
 # Zones for mode setting
 ZONE_LOGO = 0x00
@@ -84,87 +91,108 @@ KEYS = {
 }
 
 
-def find_g915_hidraw():
-    """Find the correct hidraw for G915 TKL HID++ communication.
+def _probe_hidraw(dev_path):
+    """Try an IRoot.getFeature query on a hidraw device.
+
+    Returns dev_index (0xFF or 0x01) on success, None on failure.
+    """
+    try:
+        fd = os.open(dev_path, os.O_RDWR | os.O_NONBLOCK)
+    except (PermissionError, OSError):
+        return None
+    try:
+        for dev_idx in (0xFF, 0x01):
+            pkt = [0x11, dev_idx, 0x00, 0x0D, 0x80, 0x71, 0x00]
+            buf = bytes(pkt) + bytes(20 - len(pkt))
+            try:
+                os.write(fd, buf)
+            except (BrokenPipeError, OSError):
+                continue
+            time.sleep(0.1)
+            while True:
+                try:
+                    resp = os.read(fd, 64)
+                except BlockingIOError:
+                    break
+                if len(resp) >= 5 and resp[1] == dev_idx and resp[2] == 0x00 and (resp[3] & 0x0F) == 0x0D and resp[4] > 0:
+                    return dev_idx
+    finally:
+        os.close(fd)
+    return None
+
+
+def find_device():
+    """Find a supported Logitech HID++ device.
 
     Returns (hidraw_path, dev_index) or (None, None).
-
-    Looks for C343 input2 hidraw. If the HID device exists but has no driver
-    (and thus no hidraw), binds hid-generic to create one.
+    Probes each hidraw for supported PIDs by sending an IRoot query.
+    Falls back to Linux driver-bind if no working interface is found.
     """
-    # Check if C343 input2 already has a hidraw
+    candidates = []
     for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
         with open(path) as f:
             content = f.read()
-        if "C343" in content and "input2" in content:
-            dev = "/dev/" + path.split("/")[4]
-            driver = ""
-            for line in content.splitlines():
-                if line.startswith("DRIVER="):
-                    driver = line.split("=", 1)[1]
-            print(f"Found input2 hidraw: {dev} (driver: {driver})", file=sys.stderr)
-            return dev, DEV_INDEX_WIRED
-
-    # No hidraw for input2 — check if the HID device exists without a driver
-    for hid_dev in sorted(glob.glob("/sys/bus/hid/devices/0003:046D:C343.*")):
-        with open(os.path.join(hid_dev, "uevent")) as f:
-            content = f.read()
-        if "input2" not in content:
+        if _VENDOR_STRING not in content:
             continue
-        hid_id = os.path.basename(hid_dev)
-        driver_link = os.path.join(hid_dev, "driver")
-        if os.path.islink(driver_link):
-            driver = os.path.basename(os.readlink(driver_link))
-            print(f"input2 HID device {hid_id} has driver {driver} but no hidraw", file=sys.stderr)
-            return None, None
+        if not any(pid in content for pid in _PID_STRINGS):
+            continue
+        dev = "/dev/" + path.split("/")[4]
+        candidates.append(dev)
 
-        # No driver bound — bind logitech-hidpp-device to create a hidraw
-        # (writes work fine on input2 — BrokenPipeError on input0/1 is due to
-        # those interfaces lacking output reports, not the driver blocking)
-        print(f"input2 HID device {hid_id} has no driver, binding logitech-hidpp-device...", file=sys.stderr)
-        try:
-            with open("/sys/bus/hid/drivers/logitech-hidpp-device/bind", "w") as f:
-                f.write(hid_id)
-        except PermissionError:
-            print("  Need root to bind driver", file=sys.stderr)
-            return None, None
-        time.sleep(0.5)
+    for dev in candidates:
+        di = _probe_hidraw(dev)
+        if di is not None:
+            print(f"Found HID++ device: {dev} (dev_index=0x{di:02X})", file=sys.stderr)
+            return dev, di
 
-        # Find the newly created hidraw
-        for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
-            with open(path) as f:
-                c = f.read()
-            if "C343" in c and "input2" in c:
-                dev = "/dev/" + path.split("/")[4]
-                print(f"Created hidraw: {dev}", file=sys.stderr)
-                return dev, DEV_INDEX_WIRED
+    if sys.platform == "linux":
+        result = _linux_bind_fallback()
+        if result:
+            return result
 
     return None, None
 
 
-def find_hid_device_id(hidraw):
-    """Get the HID device ID for unbind/rebind."""
-    dev_path = os.path.realpath(f"/sys/class/hidraw/{os.path.basename(hidraw)}/device")
-    return os.path.basename(dev_path)
+def _linux_bind_fallback():
+    """Linux-only: bind logitech-hidpp-device to unbound HID devices.
+
+    Returns (hidraw_path, dev_index) or None.
+    """
+    for pid_str in _PID_STRINGS:
+        pattern = f"/sys/bus/hid/devices/0003:{_VENDOR_STRING}:{pid_str}.*"
+        for hid_dev in sorted(glob.glob(pattern)):
+            driver_link = os.path.join(hid_dev, "driver")
+            if os.path.islink(driver_link):
+                continue
+            hid_id = os.path.basename(hid_dev)
+            print(f"HID device {hid_id} has no driver, binding logitech-hidpp-device...", file=sys.stderr)
+            try:
+                with open("/sys/bus/hid/drivers/logitech-hidpp-device/bind", "w") as f:
+                    f.write(hid_id)
+            except PermissionError:
+                print("  Need root to bind driver.", file=sys.stderr)
+                continue
+            except OSError as e:
+                print(f"  Bind failed: {e}", file=sys.stderr)
+                continue
+            time.sleep(0.5)
+            for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
+                with open(path) as f:
+                    content = f.read()
+                if pid_str not in content:
+                    continue
+                dev = "/dev/" + path.split("/")[4]
+                di = _probe_hidraw(dev)
+                if di is not None:
+                    print(f"Bound and found: {dev} (dev_index=0x{di:02X})", file=sys.stderr)
+                    return dev, di
+    return None
 
 
 def ensure_root():
     """Re-exec with sudo if not root."""
     if os.geteuid() != 0:
         os.execvp("sudo", ["sudo", sys.executable] + sys.argv)
-
-
-def driver_unbind(hid_id):
-    """Unbind logitech-hidpp-device from the control interface."""
-    with open("/sys/bus/hid/drivers/logitech-hidpp-device/unbind", "w") as f:
-        f.write(hid_id)
-    time.sleep(0.3)
-
-
-def driver_rebind(hid_id):
-    """Rebind logitech-hidpp-device to the control interface."""
-    with open("/sys/bus/hid/drivers/logitech-hidpp-device/bind", "w") as f:
-        f.write(hid_id)
 
 
 def send_packet(fd, data):
@@ -343,7 +371,7 @@ def debug_scan():
     for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
         with open(path) as f:
             content = f.read()
-        if "046D" not in content:
+        if _VENDOR_STRING not in content:
             continue
         hidraw = path.split("/")[4]
         info = {}
@@ -448,7 +476,7 @@ def debug_scan():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Control Logitech G915 TKL backlighting on Linux",
+        description="Control Logitech G915 keyboard backlighting",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -503,16 +531,14 @@ def main():
         debug_scan()
         return
 
-    # First try without root
-    hidraw, di = find_g915_hidraw()
-    if not hidraw and os.geteuid() != 0:
-        # Need root to bind hid-generic to input2
+    hidraw, di = find_device()
+    if not hidraw and sys.platform == "linux" and os.geteuid() != 0:
         print("Escalating to root to bind driver...", file=sys.stderr)
         ensure_root()
+        hidraw, di = find_device()
     if not hidraw:
-        hidraw, di = find_g915_hidraw()
-    if not hidraw:
-        print("Error: G915 TKL not found. Is it connected via USB?", file=sys.stderr)
+        models = ", ".join(SUPPORTED_PIDS.values())
+        print(f"Error: No supported device found ({models}). Is it connected via USB?", file=sys.stderr)
         sys.exit(1)
 
     print(f"Using {hidraw} (dev_index=0x{di:02X})", file=sys.stderr)
