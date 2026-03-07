@@ -218,6 +218,9 @@ run_step "waypaper" bash -c '
   fi
 '
 
+# ── Rofi GenericName overrides ──
+run_step "Rofi GenericNames" bash "$SCRIPTS_DIR/../shared/generate-rofi-genericnames.sh"
+
 echo ""
 if [[ ${#FAILED[@]} -gt 0 ]]; then
   echo "=== Fedora app installation complete (with errors) ==="

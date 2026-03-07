@@ -1,7 +1,7 @@
 [Desktop Entry]
+GenericName=Cider
 Name=Cider
 Comment=A cross-platform Apple Music experience built on Vue.js and written from the ground up with performance in mind
-GenericName=Music Player
 Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi Cider %U
 Icon=Cider
 Type=Application

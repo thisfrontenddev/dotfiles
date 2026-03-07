@@ -98,6 +98,7 @@ assign [app_id="Spotify"] M
 assign [class="Spotify"] M
 assign [app_id="Cider"] M
 assign [class="Cider"] M
+assign [app_id="org.pulseaudio.pavucontrol"] M
 assign [app_id="thunar"] F
 assign [app_id="nautilus"] F
 assign [class="LM Studio"] L

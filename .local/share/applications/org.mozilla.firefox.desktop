@@ -1,7 +1,7 @@
 [Desktop Entry]
+GenericName=org.mozilla.firefox
 Version=1.0
 Name=Firefox
-GenericName=Web Browser
 Comment=Browse the Web
 Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi firefox %u
 Icon=firefox
