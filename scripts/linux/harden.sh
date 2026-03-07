@@ -20,17 +20,24 @@ else
   info "Hostname set to blackwall"
 fi
 
-# ── 2. Firewall (firewalld) ──
-step "Enabling firewall"
-if systemctl is-active firewalld &>/dev/null; then
-  info "firewalld already running"
+# ── 2. Firewall (strict zone) ──
+step "Configuring firewall (ws-strict)"
+sudo systemctl enable --now firewalld 2>/dev/null || true
+CURRENT_ZONE=$(sudo firewall-cmd --get-default-zone)
+if [[ "$CURRENT_ZONE" == "ws-strict" ]]; then
+  info "ws-strict zone already active"
 else
-  sudo systemctl enable --now firewalld
-  info "firewalld started and enabled"
+  # Create strict zone: only SSH + DHCPv6, no open high ports
+  sudo firewall-cmd --permanent --new-zone=ws-strict 2>/dev/null || true
+  sudo firewall-cmd --reload
+  sudo firewall-cmd --permanent --zone=ws-strict --add-service=ssh 2>/dev/null || true
+  sudo firewall-cmd --permanent --zone=ws-strict --add-service=dhcpv6-client 2>/dev/null || true
+  sudo firewall-cmd --permanent --zone=ws-strict --set-target=default 2>/dev/null || true
+  sudo firewall-cmd --permanent --zone=ws-strict --change-interface=enp13s0
+  sudo firewall-cmd --set-default-zone=ws-strict
+  sudo firewall-cmd --reload
+  info "ws-strict zone created and activated (inbound: ssh + dhcpv6 only)"
 fi
-# Ensure default zone drops unsolicited inbound
-ZONE=$(sudo firewall-cmd --get-default-zone)
-info "Default zone: $ZONE"
 
 # ── 3. DNS-over-TLS (Cloudflare) ──
 step "Configuring DNS-over-TLS (Cloudflare)"
@@ -72,13 +79,31 @@ else
   info "nvidia-persistenced enabled"
 fi
 
-# ── 5. Snapper timers ──
+# ── 5. NVIDIA fbdev in kernel cmdline ──
+step "Ensuring nvidia-drm.fbdev=1 in kernel cmdline"
+if grep -q "nvidia-drm.fbdev=1" /proc/cmdline; then
+  info "nvidia-drm.fbdev=1 already in cmdline"
+else
+  sudo grubby --update-kernel=ALL --args="nvidia-drm.fbdev=1"
+  info "nvidia-drm.fbdev=1 added (takes effect on next boot)"
+fi
+
+# ── 6. Disable CUPS (no printer needed) ──
+step "Disabling CUPS printing service"
+if systemctl is-active cups &>/dev/null; then
+  sudo systemctl disable --now cups cups.socket cups.path 2>/dev/null || true
+  info "CUPS disabled"
+else
+  info "CUPS already inactive"
+fi
+
+# ── 7. Snapper timers ──
 step "Enabling Snapper snapshot timers"
 sudo systemctl enable --now snapper-timeline.timer 2>/dev/null || true
 sudo systemctl enable --now snapper-cleanup.timer 2>/dev/null || true
 info "Snapper timeline + cleanup timers active"
 
-# ── 6. Btrfs scrub timer ──
+# ── 8. Btrfs scrub timer ──
 step "Enabling Btrfs scrub timer"
 if [[ ! -f /etc/systemd/system/btrfs-scrub.timer ]]; then
   sudo tee /etc/systemd/system/btrfs-scrub.service > /dev/null << 'SCRUBSVC'
@@ -106,7 +131,7 @@ fi
 sudo systemctl enable --now btrfs-scrub.timer 2>/dev/null || true
 info "Btrfs monthly scrub enabled for /"
 
-# ── 7. Sysctl tuning ──
+# ── 9. Sysctl tuning ──
 step "Applying sysctl tuning"
 SYSCTL_FILE="/etc/sysctl.d/99-dev-workstation.conf"
 if [[ -f "$SYSCTL_FILE" ]] && grep -q "vm.swappiness" "$SYSCTL_FILE"; then
@@ -128,7 +153,7 @@ EOF
   info "Sysctl tuning applied"
 fi
 
-# ── 8. Disable WiFi autoconnect (ethernet preferred) ──
+# ── 10. Disable WiFi autoconnect (ethernet preferred) ──
 step "Disabling WiFi autoconnect"
 if nmcli connection show "SFR_0020" &>/dev/null; then
   AUTOCONNECT=$(nmcli -g connection.autoconnect connection show "SFR_0020")
@@ -142,7 +167,7 @@ else
   info "No SFR_0020 WiFi profile found — skipping"
 fi
 
-# ── 9. Journald size limit ──
+# ── 11. Journald size limit ──
 step "Setting journald size limit"
 JOURNAL_CONF="/etc/systemd/journald.conf.d/size.conf"
 sudo mkdir -p /etc/systemd/journald.conf.d
@@ -157,7 +182,7 @@ EOF
   info "Journald capped at 500M"
 fi
 
-# ── 10. Automatic security updates ──
+# ── 12. Automatic security updates ──
 step "Enabling automatic security updates"
 if ! rpm -q dnf5-plugin-automatic &>/dev/null; then
   sudo dnf install -y dnf5-plugin-automatic
@@ -172,7 +197,7 @@ fi
 sudo systemctl enable --now dnf5-automatic.timer 2>/dev/null || true
 info "dnf5-automatic enabled (security updates only)"
 
-# ── 11. Git commit signing (SSH key) ──
+# ── 13. Git commit signing (SSH key) ──
 step "Configuring git commit signing"
 if [[ "$(git config --global gpg.format 2>/dev/null)" == "ssh" ]]; then
   info "Git SSH signing already configured"
@@ -207,7 +232,7 @@ else
   info "allowed_signers created for $EMAIL"
 fi
 
-# ── 12. Flatpak auto-update timer ──
+# ── 14. Flatpak auto-update timer ──
 step "Enabling Flatpak auto-update"
 FLATPAK_SERVICE="$HOME/.config/systemd/user/flatpak-update.service"
 FLATPAK_TIMER="$HOME/.config/systemd/user/flatpak-update.timer"
@@ -240,7 +265,7 @@ EOF
   info "Flatpak weekly auto-update enabled"
 fi
 
-# ── 13. fail2ban (SSH brute-force protection) ──
+# ── 15. fail2ban (SSH brute-force protection) ──
 step "Configuring fail2ban"
 if ! rpm -q fail2ban &>/dev/null; then
   sudo dnf install -y fail2ban
@@ -268,6 +293,16 @@ if systemctl is-active sshd &>/dev/null; then
 else
   info "fail2ban enabled but not started (sshd is inactive)"
 fi
+
+# ── 16. Disable fingerprint auth (no reader on desktop) ──
+step "Disabling fingerprint PAM"
+if authselect current 2>/dev/null | grep -q "with-fingerprint"; then
+  sudo authselect disable-feature with-fingerprint
+  info "Fingerprint auth disabled"
+else
+  info "Fingerprint auth already disabled"
+fi
+
 
 echo ""
 echo "=== Fedora hardening complete! ==="

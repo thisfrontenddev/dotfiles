@@ -29,17 +29,19 @@ run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers.sh"
 # ── System packages (dnf) ──
 run_step "System packages" bash -c '
   echo "==> Installing system packages..."
+  # CLI tools managed by Nix/home-manager: tmux, fzf, bat, ripgrep, btop,
+  # fastfetch, gh, cloc, tldr, starship, lazygit, eza, commitizen, watchman, fnm, rustup
   sudo dnf install -y --skip-unavailable \
     zsh git gcc gcc-c++ cmake ninja-build clang lld \
     golang java-latest-openjdk-devel \
     podman podman-compose \
-    neovim tmux fzf \
-    htop btop ripgrep fd-find bat jq yq \
+    neovim \
+    htop fd-find jq yq \
     strace ltrace hyperfine tokei \
-    fastfetch ImageMagick ffmpeg \
+    ImageMagick ffmpeg \
     pipx snapper \
     fontconfig \
-    gh cloc tldr pnpm
+    pnpm
 '
 
 # ── Sway ecosystem (dnf) ──
@@ -91,18 +93,7 @@ REPO
   fi
 '
 
-# ── Docker Engine (repo → dnf) ──
-run_step "Docker" bash -c '
-  echo "==> Installing Docker..."
-  if command -v docker &>/dev/null; then
-    echo "    Docker already installed"
-  else
-    sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
-    sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    sudo systemctl enable --now docker
-    sudo usermod -aG docker "$USER"
-  fi
-'
+
 
 # ── Flatpak apps ──
 run_step "Flatpak apps" bash -c '
@@ -118,6 +109,7 @@ run_step "Flatpak apps" bash -c '
     com.obsproject.Studio
     com.moonlight_stream.Moonlight
     net.davidotek.pupgui2
+    com.protonvpn.www
   )
 
   for app in "${FLATPAKS[@]}"; do

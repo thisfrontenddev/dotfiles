@@ -12,11 +12,15 @@ info() { echo -e "${YELLOW}    → $1${NC}"; }
 
 echo "=== Fedora System Setup ==="
 
-# ── 1. Install packages and apps ──
+# ── 1. Nix + Home Manager (CLI tools) ──
+step "Setting up Nix + Home Manager"
+bash "$SCRIPTS_DIR/../shared/setup-nix.sh"
+
+# ── 2. Install packages and apps ──
 step "Installing packages and apps"
 bash "$SCRIPTS_DIR/install-apps.sh"
 
-# ── 2. Dark mode + system fonts ──
+# ── 3. Dark mode + system fonts ──
 step "Enabling dark mode and setting system fonts"
 gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
@@ -26,14 +30,14 @@ gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrainsMono Ner
 gsettings set org.gnome.desktop.wm.preferences titlebar-font 'Inter Bold 11'
 info "Dark mode enabled, Inter + JetBrains Mono Nerd Font set"
 
-# ── 3. Enable GNOME extensions ──
+# ── 4. Enable GNOME extensions ──
 step "Enabling GNOME extensions"
 gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com 2>/dev/null || true
 gnome-extensions enable blur-my-shell@auber 2>/dev/null || true
 gnome-extensions enable forge@jmmaranan.com 2>/dev/null || true
 info "AppIndicator, Blur My Shell, Forge enabled"
 
-# ── 4. GNOME workspace + Forge keybindings (dconf) ──
+# ── 5. GNOME workspace + Forge keybindings (dconf) ──
 # Source of truth: ~/.config/dconf/workspace-keybindings.ini
 # Sets 19 workspaces, Alt+1-9/0, Forge tiling keys, clears conflicts
 step "Loading GNOME workspace + Forge keybindings"
@@ -44,14 +48,14 @@ else
   info "WARNING: ~/.config/dconf/workspace-keybindings.ini not found — keybindings not configured"
 fi
 
-# ── 5. Default browser ──
+# ── 6. Default browser ──
 step "Setting default browser to Zen"
 xdg-mime default app.zen_browser.zen.desktop x-scheme-handler/http
 xdg-mime default app.zen_browser.zen.desktop x-scheme-handler/https
 xdg-mime default app.zen_browser.zen.desktop text/html
 info "Zen Browser set as default"
 
-# ── 6. Snapper (btrfs snapshots) ──
+# ── 7. Snapper (btrfs snapshots) ──
 step "Configuring Snapper"
 if command -v snapper &>/dev/null; then
   if ! sudo snapper list-configs 2>/dev/null | grep -q "^root"; then
@@ -70,7 +74,7 @@ else
   info "Snapper not installed — skipping"
 fi
 
-# ── 7. Sway setup ──
+# ── 8. Sway setup ──
 step "Setting up Sway"
 
 # Patch sway desktop entry for NVIDIA (--unsupported-gpu + WLR_DRM_DEVICES)
@@ -113,7 +117,20 @@ if [[ ! -f "$WALLPAPER_DIR/f43-night.png" ]]; then
   fi
 fi
 
-# ── 8. System hardening ──
+# ── 9. Rust toolchain ──
+step "Setting up Rust toolchain"
+if command -v rustup &>/dev/null; then
+  if rustup show active-toolchain &>/dev/null; then
+    info "Rust toolchain already configured: $(rustup show active-toolchain | head -1)"
+  else
+    rustup default stable
+    info "Rust stable toolchain installed"
+  fi
+else
+  info "rustup not found — install via home-manager first"
+fi
+
+# ── 10. System hardening ──
 step "Applying system hardening"
 bash "$SCRIPTS_DIR/harden.sh"
 
@@ -121,6 +138,5 @@ echo ""
 echo "=== Fedora setup complete! ==="
 echo ""
 echo -e "${YELLOW}  Log out and back in for:${NC}"
-echo "    - Docker group membership"
 echo "    - GNOME extensions to fully activate"
 echo "    - Sway available at GDM login screen"

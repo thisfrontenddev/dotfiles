@@ -17,8 +17,8 @@ xwayland enable
 
 # ─── Output (monitors) ───────────────────────────────────────────────
 # Primary: 2560x1440 (DP-6)  Secondary: 1920x1080 (HDMI-A-2)
-output DP-6 pos 0 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
-output HDMI-A-2 pos 2560 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
+output DP-6 mode 2560x1440@280Hz adaptive_sync on pos 0 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
+output HDMI-A-2 mode 1920x1080@165Hz pos 2560 0 bg /home/void/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
 
 # ─── Workspace-to-monitor assignments ────────────────────────────────
 # Secondary monitor (HDMI-A-2): 1-6, W
