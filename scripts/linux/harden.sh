@@ -33,7 +33,11 @@ else
   sudo firewall-cmd --permanent --zone=ws-strict --add-service=ssh 2>/dev/null || true
   sudo firewall-cmd --permanent --zone=ws-strict --add-service=dhcpv6-client 2>/dev/null || true
   sudo firewall-cmd --permanent --zone=ws-strict --set-target=default 2>/dev/null || true
-  sudo firewall-cmd --permanent --zone=ws-strict --change-interface=enp13s0
+  # Assign the primary network interface to the strict zone
+  PRIMARY_IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+  if [[ -n "$PRIMARY_IFACE" ]]; then
+    sudo firewall-cmd --permanent --zone=ws-strict --change-interface="$PRIMARY_IFACE"
+  fi
   sudo firewall-cmd --set-default-zone=ws-strict
   sudo firewall-cmd --reload
   info "ws-strict zone created and activated (inbound: ssh + dhcpv6 only)"
@@ -57,18 +61,17 @@ EOF
   info "DNS-over-TLS enabled with Cloudflare"
 fi
 
-# Tell NetworkManager to stop overriding per-link DNS
-for conn in "Wired connection 1" "SFR_0020"; do
-  if nmcli connection show "$conn" &>/dev/null; then
-    CURRENT_DNS=$(nmcli -g ipv4.dns connection show "$conn")
-    if [[ "$CURRENT_DNS" != "1.1.1.1,1.0.0.1" ]]; then
-      sudo nmcli connection modify "$conn" ipv4.dns "1.1.1.1 1.0.0.1" ipv4.ignore-auto-dns yes
-      info "DNS set for $conn"
-    else
-      info "DNS already set for $conn"
-    fi
+# Tell NetworkManager to stop overriding per-link DNS on active connections
+while IFS= read -r conn; do
+  [[ -z "$conn" ]] && continue
+  CURRENT_DNS=$(nmcli -g ipv4.dns connection show "$conn" 2>/dev/null)
+  if [[ "$CURRENT_DNS" != "1.1.1.1,1.0.0.1" ]]; then
+    sudo nmcli connection modify "$conn" ipv4.dns "1.1.1.1 1.0.0.1" ipv4.ignore-auto-dns yes
+    info "DNS set for $conn"
+  else
+    info "DNS already set for $conn"
   fi
-done
+done < <(nmcli -t -f NAME connection show --active 2>/dev/null)
 
 # ── 4. NVIDIA persistence mode ──
 step "Enabling NVIDIA persistence mode"
@@ -155,16 +158,18 @@ fi
 
 # ── 10. Disable WiFi autoconnect (ethernet preferred) ──
 step "Disabling WiFi autoconnect"
-if nmcli connection show "SFR_0020" &>/dev/null; then
-  AUTOCONNECT=$(nmcli -g connection.autoconnect connection show "SFR_0020")
+WIFI_DISABLED=false
+while IFS= read -r wifi_conn; do
+  [[ -z "$wifi_conn" ]] && continue
+  AUTOCONNECT=$(nmcli -g connection.autoconnect connection show "$wifi_conn" 2>/dev/null)
   if [[ "$AUTOCONNECT" == "yes" ]]; then
-    nmcli connection modify "SFR_0020" connection.autoconnect no
-    info "WiFi autoconnect disabled (ethernet preferred)"
-  else
-    info "WiFi autoconnect already disabled"
+    nmcli connection modify "$wifi_conn" connection.autoconnect no
+    info "WiFi autoconnect disabled for $wifi_conn"
+    WIFI_DISABLED=true
   fi
-else
-  info "No SFR_0020 WiFi profile found — skipping"
+done < <(nmcli -t -f NAME,TYPE connection show 2>/dev/null | grep ':802-11-wireless$' | cut -d: -f1)
+if [[ "$WIFI_DISABLED" == "false" ]]; then
+  info "No WiFi connections with autoconnect — skipping"
 fi
 
 # ── 11. Journald size limit ──

@@ -69,7 +69,6 @@ keybind = cmd+digit_7=unbind
 keybind = cmd+digit_8=unbind
 keybind = cmd+digit_9=unbind
 keybind = super+one=text:\x02\x31
-keybind = super+one=text:\x02\x31
 keybind = super+two=text:\x02\x32
 keybind = super+three=text:\x02\x33
 keybind = super+four=text:\x02\x34

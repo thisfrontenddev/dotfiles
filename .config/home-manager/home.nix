@@ -1,6 +1,6 @@
-{ pkgs, ... }: {
-  home.username = "void";
-  home.homeDirectory = "/home/void";
+{ pkgs, user, ... }: {
+  home.username = user.username;
+  home.homeDirectory = user.homeDirectory;
   home.stateVersion = "24.11";
 
   programs.home-manager.enable = true;

@@ -1,18 +1,37 @@
-# Brewfile — macOS-only taps and casks
-# CLI tools shared with Linux are in Brewfile.common
+# Brewfile — macOS packages and apps
+# Usage: brew bundle
 
 tap "homebrew/bundle"
-tap "homebrew/cask-fonts"
-tap "felixkratz/formulae"
-tap "koekeishiya/formulae"
 tap "nikitabobko/tap"
 
-# ── macOS-only casks ──
+# ── CLI tools ──
 
-# AI Clients
+brew "bat"          # cat with syntax highlighting
+brew "btop"         # System monitor
+brew "cloc"         # Count lines of code
+brew "commitizen"   # Conventional commits
+brew "eza"          # Modern ls
+brew "fastfetch"    # System info
+brew "ffmpeg"       # Video transcoder
+brew "fnm"          # Node version manager
+brew "fzf"          # Fuzzy finder
+brew "gh"           # GitHub CLI
+brew "imagemagick"  # Image conversion
+brew "lazygit"      # Git TUI
+brew "neovim"       # Text editor
+brew "node"         # Node.js
+brew "pnpm"         # Package manager
+brew "ripgrep"      # Modern grep
+brew "rustup"       # Rust toolchain
+brew "starship"     # Shell prompt
+brew "tldr"         # Simplified man pages
+brew "tmux"         # Terminal multiplexer
+brew "watchman"     # File watcher
+
+# ── Casks ──
+
+# AI
 cask "claude"
-
-# Agentic interfaces
 cask "conductor"
 
 # Browsers
@@ -25,7 +44,7 @@ cask "discord"
 cask "slack"
 cask "whatsapp"
 
-# Docker / Containerization
+# Containers
 cask "orbstack"
 
 # Fonts
@@ -47,10 +66,10 @@ cask "zed"
 cask "notion-mail"
 
 # Media
-cask "iina" # Video player
-cask "shottr" # Screenshot tool
+cask "iina"         # Video player
+cask "shottr"       # Screenshot tool
 
-# Note taking
+# Notes
 cask "obsidian"
 cask "notion"
 
@@ -58,15 +77,15 @@ cask "notion"
 cask "linear-linear"
 
 # Security
-cask "1password" # Password manager
-cask "1password-cli" # 1Password CLI
-cask "little-snitch" # Host-based application firewall
-cask "micro-snitch" # Monitors and reports any microphone and camera activity
+cask "1password"
+cask "1password-cli"
+cask "little-snitch"
+cask "micro-snitch"
 
-# Terminal emulators
-cask "alacritty" # GPU-accelerated terminal emulator
-cask "iterm2" # Reliable, fast and beautiful terminal emulator
-cask "ghostty" # Fast, feature-rich, and cross-platform terminal emulator
+# Terminals
+cask "alacritty"
+cask "ghostty"
+cask "iterm2"
 
 # UI/UX
 cask "figma"
@@ -75,16 +94,16 @@ cask "spline"
 # Spotlight replacement
 cask "raycast"
 
-# Streaming / screencasting
-cask "keycastr" # Show keystrokes on screen
-cask "obs" # Video recording and streaming
+# Streaming
+cask "keycastr"
+cask "obs"
 
 # Utilities
-cask "aerospace" # Tiling window manager
-cask "avifquicklook" # Avif format quicklook extension
-cask "appcleaner" # App uninstaller
-cask "caffeine" # Prevents your Mac from automatically going to sleep - Helpful for builds
-cask "keyboardcleantool" # Disable keyboard when cleaning the mac
-cask "mediamate" # UI replacement for volume, brightness and now playing controls
-cask "minisim" # Lightweight simulator launcher for iOS and Android
-cask "spacelauncher" # App launcher/switcher
+cask "aerospace"
+cask "appcleaner"
+cask "avifquicklook"
+cask "caffeine"
+cask "keyboardcleantool"
+cask "mediamate"
+cask "minisim"
+cask "spacelauncher"

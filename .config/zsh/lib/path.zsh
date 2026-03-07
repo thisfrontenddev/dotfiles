@@ -40,4 +40,7 @@ else
   )
 fi
 
+# Optional tools (only added if installed)
+[[ -d "$HOME/.lmstudio/bin" ]] && path+=("$HOME/.lmstudio/bin")
+
 export PATH

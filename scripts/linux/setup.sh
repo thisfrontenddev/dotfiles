@@ -20,32 +20,36 @@ bash "$SCRIPTS_DIR/../shared/setup-nix.sh"
 step "Installing packages and apps"
 bash "$SCRIPTS_DIR/install-apps.sh"
 
-# ── 3. Dark mode + system fonts ──
-step "Enabling dark mode and setting system fonts"
-gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
-gsettings set org.gnome.desktop.interface font-name 'Inter 11'
-gsettings set org.gnome.desktop.interface document-font-name 'Inter 11'
-gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrainsMono Nerd Font 11'
-gsettings set org.gnome.desktop.wm.preferences titlebar-font 'Inter Bold 11'
-info "Dark mode enabled, Inter + JetBrains Mono Nerd Font set"
+# ── 3. Dark mode + system fonts (GNOME only) ──
+if command -v gsettings &>/dev/null && [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* || -z "$XDG_CURRENT_DESKTOP" ]]; then
+  step "Enabling dark mode and setting system fonts"
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+  gsettings set org.gnome.desktop.interface font-name 'Inter 11'
+  gsettings set org.gnome.desktop.interface document-font-name 'Inter 11'
+  gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrainsMono Nerd Font 11'
+  gsettings set org.gnome.desktop.wm.preferences titlebar-font 'Inter Bold 11'
+  info "Dark mode enabled, Inter + JetBrains Mono Nerd Font set"
 
-# ── 4. Enable GNOME extensions ──
-step "Enabling GNOME extensions"
-gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com 2>/dev/null || true
-gnome-extensions enable blur-my-shell@auber 2>/dev/null || true
-gnome-extensions enable forge@jmmaranan.com 2>/dev/null || true
-info "AppIndicator, Blur My Shell, Forge enabled"
+  # ── 4. Enable GNOME extensions ──
+  step "Enabling GNOME extensions"
+  gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com 2>/dev/null || true
+  gnome-extensions enable blur-my-shell@auber 2>/dev/null || true
+  gnome-extensions enable forge@jmmaranan.com 2>/dev/null || true
+  info "AppIndicator, Blur My Shell, Forge enabled"
 
-# ── 5. GNOME workspace + Forge keybindings (dconf) ──
-# Source of truth: ~/.config/dconf/workspace-keybindings.ini
-# Sets 19 workspaces, Alt+1-9/0, Forge tiling keys, clears conflicts
-step "Loading GNOME workspace + Forge keybindings"
-if [[ -f "$HOME/.config/dconf/workspace-keybindings.ini" ]]; then
-  dconf load / < "$HOME/.config/dconf/workspace-keybindings.ini"
-  info "19 workspaces + Forge keybindings loaded from dconf ini"
+  # ── 5. GNOME workspace + Forge keybindings (dconf) ──
+  # Source of truth: ~/.config/dconf/workspace-keybindings.ini
+  # Sets 19 workspaces, Alt+1-9/0, Forge tiling keys, clears conflicts
+  step "Loading GNOME workspace + Forge keybindings"
+  if [[ -f "$HOME/.config/dconf/workspace-keybindings.ini" ]]; then
+    dconf load / < "$HOME/.config/dconf/workspace-keybindings.ini"
+    info "19 workspaces + Forge keybindings loaded from dconf ini"
+  else
+    info "WARNING: ~/.config/dconf/workspace-keybindings.ini not found — keybindings not configured"
+  fi
 else
-  info "WARNING: ~/.config/dconf/workspace-keybindings.ini not found — keybindings not configured"
+  step "Skipping GNOME settings (not a GNOME session)"
 fi
 
 # ── 6. Default browser ──

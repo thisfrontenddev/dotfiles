@@ -18,7 +18,7 @@ bash "$SCRIPTS_DIR/homebrew.sh"
 # --- Step 3: Clone dotfiles ---
 if [[ ! -d "$HOME/.cfg" ]]; then
   echo "==> Cloning dotfiles..."
-  git clone --bare https://github.com/thisfrontenddev/dotfiles.git "$HOME/.cfg"
+  git clone --bare git@github.com:thisfrontenddev/dotfiles.git "$HOME/.cfg"
   alias dot="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
   dot checkout 2>/dev/null || {
     echo "Backing up conflicting dotfiles..."

@@ -3,7 +3,7 @@
 # Usage: center-display.sh <output-name>
 
 OUTPUT="$1"
-SWAYSOCK=$(ls /run/user/1000/sway-ipc.*.sock 2>/dev/null | head -1)
+SWAYSOCK=$(ls /run/user/$(id -u)/sway-ipc.*.sock 2>/dev/null | head -1)
 export SWAYSOCK
 
 TREE=$(swaymsg -t get_tree 2>/dev/null)

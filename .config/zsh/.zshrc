@@ -15,9 +15,3 @@ if [[ -o interactive && $+commands[fastfetch] -eq 1 ]]; then
     unset __zsh_start
   fi
 fi
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/home/void/.lmstudio/bin"
-
-# Always resolve the current Sway IPC socket (survives tmux/session changes)
-alias swaymsg='SWAYSOCK=$(ls /run/user/1000/sway-ipc.*.sock 2>/dev/null | head -1) command swaymsg'

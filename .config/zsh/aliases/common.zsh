@@ -14,3 +14,8 @@ alias defaultnode="fnm use system"
 alias docker="podman"
 alias docker-compose="podman-compose"
 
+# Sway: always resolve the current IPC socket (survives tmux/session changes)
+if [[ "$OSTYPE" != darwin* ]]; then
+  alias swaymsg='SWAYSOCK=$(ls /run/user/$(id -u)/sway-ipc.*.sock 2>/dev/null | head -1) command swaymsg'
+fi
+

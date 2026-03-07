@@ -1,39 +1,21 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-function install_homebrew() {
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh) & wait"
-    (
-        echo;
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"';
-    ) >> /Users/$USER/.zprofile
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-}
-
-function install_deps() {
-    # Brew dependencies installation
-    while true; do
-
-    read -p "Install brew dependencies? (y/n) " yn
-
-    case $yn in
-        [yY] ) DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-            brew bundle install --force --file="$DOTFILES_DIR/Brewfile.common"
-            brew bundle install --force --file="$DOTFILES_DIR/Brewfile";
-            break;;
-        [nN] ) echo;
-            exit;;
-        * ) echo;;
-    esac
-
-    done
-}
-
-# Install homebrew only if not installed
+# Install Homebrew if not present
 if ! command -v brew &>/dev/null; then
-    echo "\`brew\` could not be found, installing..."
-    install_homebrew
-    install_deps
+    echo "==> Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    # Add brew to PATH for this session and future login shells
+    if ! grep -q 'brew shellenv' "$HOME/.zprofile" 2>/dev/null; then
+        echo >> "$HOME/.zprofile"
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
+    fi
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 else
-    echo "Homebrew already installed, moving on."
-    install_deps
+    echo "==> Homebrew already installed"
 fi
+
+# Install all packages from Brewfile
+echo "==> Installing Homebrew packages..."
+brew bundle install --force --file="$HOME/Brewfile"

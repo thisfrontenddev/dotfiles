@@ -83,3 +83,10 @@ Pipfile.lock
 *.zip
 *.tar.gz
 *.rar
+
+# Shell history
+.zsh_history
+.bash_history
+
+# GitHub CLI credentials
+.config/gh/hosts.yml

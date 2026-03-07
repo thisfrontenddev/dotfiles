@@ -7,10 +7,9 @@
 [user]
 	name = Eric Martin
 	email = eric.martin@hey.com
-	signingkey = /home/void/.ssh/id_ed25519.pub
+	signingkey = ~/.ssh/id_ed25519.pub
 [init]
 	defaultBranch = main
-	templateDir = ~/.config/git/template
 [core]
 	editor = cursor --wait
 	excludesfile = ~/.config/git/ignore
@@ -69,4 +68,4 @@
 [commit]
 	gpgsign = true
 [gpg "ssh"]
-	allowedSignersFile = /home/void/.config/git/allowed_signers
+	allowedSignersFile = ~/.config/git/allowed_signers

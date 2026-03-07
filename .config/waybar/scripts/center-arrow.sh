@@ -2,7 +2,7 @@
 # Outputs class based on whether media is playing on this output
 # Usage: center-arrow.sh <output-name>
 OUTPUT="$1"
-SWAYSOCK=$(ls /run/user/1000/sway-ipc.*.sock 2>/dev/null | head -1)
+SWAYSOCK=$(ls /run/user/$(id -u)/sway-ipc.*.sock 2>/dev/null | head -1)
 export SWAYSOCK
 
 status=$(playerctl status 2>/dev/null)

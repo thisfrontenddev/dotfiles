@@ -120,4 +120,3 @@ swaync-client -rs 2>/dev/null || true
 
 echo ""
 echo "=== CYBRland theme installed! ==="
-echo "Revert anytime with: bash ~/scripts/linux/revert-catppuccin.sh"
