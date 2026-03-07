@@ -230,8 +230,8 @@ bindsym $sup+Shift+4 exec grim -g "$(slurp)" - | satty -f - --copy-command wl-co
 
 # ─── Idle / Lock ─────────────────────────────────────────────────────
 exec swayidle -w \
-    timeout 300 'swaylock -f -c 030408' \
-    timeout 600 'swaymsg "output * power off"' \
+    timeout 7200 'swaylock -f -c 030408' \
+    timeout 7500 'swaymsg "output * power off"' \
     resume 'swaymsg "output * power on"' \
     before-sleep 'swaylock -f -c 030408'
 

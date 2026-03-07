@@ -2,6 +2,7 @@ alias attach="tmux new -A -s personal"
 alias attach-work="tmux new -A -s work"
 
 alias claude-work="CLAUDE_CONFIG_DIR=~/.config/claude-work claude"
+alias alt="claude --dangerously-skip-permissions"
 
 alias dot="/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME"
 alias zdot="$EDITOR ~/.zshrc"
