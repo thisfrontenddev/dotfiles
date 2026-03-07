@@ -221,8 +221,8 @@ bindsym Ctrl+$mod+Shift+e exec swaynag -t warning \
 floating_modifier $mod normal
 
 # ─── Audio switcher ──────────────────────────────────────────────────
-bindsym $sup+a exec ~/scripts/audio-switch.sh output
-bindsym $sup+Shift+a exec ~/scripts/audio-switch.sh input
+bindsym $sup+a exec ~/scripts/shared/audio-switch.sh output
+bindsym $sup+Shift+a exec ~/scripts/shared/audio-switch.sh input
 
 # ─── Screenshots (grim + satty) ──────────────────────────────────────
 bindsym $sup+Shift+3 exec grim - | satty -f - --copy-command wl-copy --output-filename ~/Pictures/Screenshots/$(date +%Y%m%d-%H%M%S).png --actions-on-enter save-to-clipboard --actions-on-enter save-to-file --actions-on-enter exit --early-exit

@@ -1,0 +1,14 @@
+[Unit]
+Description=ChatMix for SteelSeries Arctis Nova Pro Wireless
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Requires=wireplumber.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 2
+ExecStart=%h/.local/bin/nova-chatmix
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
