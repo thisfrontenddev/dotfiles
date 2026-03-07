@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+"""
+g915-led: Control Logitech G915 TKL backlighting on Linux.
+
+Requires sudo for driver unbind/rebind.
+Protocol reverse-engineered from OpenRGB (GPL-2.0).
+
+Usage:
+    g915-led static FF0000              # solid red
+    g915-led static 00FF00 --logo FF0000  # green keys, red logo
+    g915-led breathing 0000FF --speed 50  # blue breathing
+    g915-led wave --speed 30              # rainbow wave
+    g915-led cycle --speed 50             # spectrum cycle
+    g915-led ripple FF00FF                # magenta ripple
+    g915-led off                          # lights off
+    g915-led direct W=FF0000 A=00FF00 S=0000FF D=FFFF00  # per-key colors
+    g915-led list-keys                    # show available key names
+"""
+import argparse
+import glob
+import os
+import sys
+import time
+
+# --- HID++ protocol constants (from OpenRGB) ---
+DEV_INDEX_WIRED = 0xFF
+DEV_INDEX_WIRELESS = 0x01
+
+# Zones for mode setting
+ZONE_LOGO = 0x00
+ZONE_KEYBOARD = 0x01
+
+# Frame types
+FRAME_LITTLE = 0x1F   # up to 4 keys
+FRAME_BIG = 0x6F      # up to 13 keys
+FRAME_MODE = 0x1E
+COMMIT_BYTE = 0x7F
+
+# Modes
+MODE_OFF = 0x00
+MODE_STATIC = 0x01
+MODE_BREATHING = 0x02
+MODE_CYCLE = 0x03
+MODE_WAVE = 0x04
+MODE_RIPPLE = 0x05
+
+LOGO_MODE_OFF = 0x00
+LOGO_MODE_STATIC = 0x01
+LOGO_MODE_CYCLE = 0x02
+LOGO_MODE_BREATHING = 0x03
+
+# Key name -> firmware LED code
+# Standard keys: firmware code = HID usage code - 3
+# Modifiers: custom firmware codes (0x62-0x6F), discovered via probing
+KEYS = {
+    # Letters
+    "a": 0x01, "b": 0x02, "c": 0x03, "d": 0x04, "e": 0x05, "f": 0x06,
+    "g": 0x07, "h": 0x08, "i": 0x09, "j": 0x0A, "k": 0x0B, "l": 0x0C,
+    "m": 0x0D, "n": 0x0E, "o": 0x0F, "p": 0x10, "q": 0x11, "r": 0x12,
+    "s": 0x13, "t": 0x14, "u": 0x15, "v": 0x16, "w": 0x17, "x": 0x18,
+    "y": 0x19, "z": 0x1A,
+    # Number row
+    "1": 0x1B, "2": 0x1C, "3": 0x1D, "4": 0x1E, "5": 0x1F,
+    "6": 0x20, "7": 0x21, "8": 0x22, "9": 0x23, "0": 0x24,
+    # Main block
+    "enter": 0x25, "esc": 0x26, "backspace": 0x27, "tab": 0x28,
+    "space": 0x29, "minus": 0x2A, "equals": 0x2B,
+    "lbracket": 0x2C, "rbracket": 0x2D, "backslash": 0x2E,
+    "pound": 0x2F, "semicolon": 0x30, "quote": 0x31,
+    "backtick": 0x32, "comma": 0x33, "period": 0x34,
+    "slash": 0x35, "capslock": 0x36,
+    # Function row
+    "f1": 0x37, "f2": 0x38, "f3": 0x39, "f4": 0x3A, "f5": 0x3B, "f6": 0x3C,
+    "f7": 0x3D, "f8": 0x3E, "f9": 0x3F, "f10": 0x40, "f11": 0x41, "f12": 0x42,
+    # Navigation cluster
+    "printscreen": 0x43, "scrolllock": 0x44, "pause": 0x45,
+    "insert": 0x46, "home": 0x47, "pageup": 0x48,
+    "delete": 0x49, "end": 0x4A, "pagedown": 0x4B,
+    # Arrow keys
+    "right": 0x4C, "left": 0x4D, "down": 0x4E, "up": 0x4F,
+    # Modifiers (custom firmware codes, NOT HID-3)
+    "menu": 0x62, "lctrl": 0x68, "lshift": 0x69, "lalt": 0x6A,
+    "lwin": 0x6B, "rctrl": 0x6C, "rshift": 0x6D, "ralt": 0x6E, "fn": 0x6F,
+}
+
+
+def find_g915_hidraw():
+    """Find the correct hidraw for G915 TKL HID++ communication.
+
+    Returns (hidraw_path, dev_index) or (None, None).
+
+    Looks for C343 input2 hidraw. If the HID device exists but has no driver
+    (and thus no hidraw), binds hid-generic to create one.
+    """
+    # Check if C343 input2 already has a hidraw
+    for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
+        with open(path) as f:
+            content = f.read()
+        if "C343" in content and "input2" in content:
+            dev = "/dev/" + path.split("/")[4]
+            driver = ""
+            for line in content.splitlines():
+                if line.startswith("DRIVER="):
+                    driver = line.split("=", 1)[1]
+            print(f"Found input2 hidraw: {dev} (driver: {driver})", file=sys.stderr)
+            return dev, DEV_INDEX_WIRED
+
+    # No hidraw for input2 — check if the HID device exists without a driver
+    for hid_dev in sorted(glob.glob("/sys/bus/hid/devices/0003:046D:C343.*")):
+        with open(os.path.join(hid_dev, "uevent")) as f:
+            content = f.read()
+        if "input2" not in content:
+            continue
+        hid_id = os.path.basename(hid_dev)
+        driver_link = os.path.join(hid_dev, "driver")
+        if os.path.islink(driver_link):
+            driver = os.path.basename(os.readlink(driver_link))
+            print(f"input2 HID device {hid_id} has driver {driver} but no hidraw", file=sys.stderr)
+            return None, None
+
+        # No driver bound — bind logitech-hidpp-device to create a hidraw
+        # (writes work fine on input2 — BrokenPipeError on input0/1 is due to
+        # those interfaces lacking output reports, not the driver blocking)
+        print(f"input2 HID device {hid_id} has no driver, binding logitech-hidpp-device...", file=sys.stderr)
+        try:
+            with open("/sys/bus/hid/drivers/logitech-hidpp-device/bind", "w") as f:
+                f.write(hid_id)
+        except PermissionError:
+            print("  Need root to bind driver", file=sys.stderr)
+            return None, None
+        time.sleep(0.5)
+
+        # Find the newly created hidraw
+        for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
+            with open(path) as f:
+                c = f.read()
+            if "C343" in c and "input2" in c:
+                dev = "/dev/" + path.split("/")[4]
+                print(f"Created hidraw: {dev}", file=sys.stderr)
+                return dev, DEV_INDEX_WIRED
+
+    return None, None
+
+
+def find_hid_device_id(hidraw):
+    """Get the HID device ID for unbind/rebind."""
+    dev_path = os.path.realpath(f"/sys/class/hidraw/{os.path.basename(hidraw)}/device")
+    return os.path.basename(dev_path)
+
+
+def ensure_root():
+    """Re-exec with sudo if not root."""
+    if os.geteuid() != 0:
+        os.execvp("sudo", ["sudo", sys.executable] + sys.argv)
+
+
+def driver_unbind(hid_id):
+    """Unbind logitech-hidpp-device from the control interface."""
+    with open("/sys/bus/hid/drivers/logitech-hidpp-device/unbind", "w") as f:
+        f.write(hid_id)
+    time.sleep(0.3)
+
+
+def driver_rebind(hid_id):
+    """Rebind logitech-hidpp-device to the control interface."""
+    with open("/sys/bus/hid/drivers/logitech-hidpp-device/bind", "w") as f:
+        f.write(hid_id)
+
+
+def send_packet(fd, data):
+    """Send a 20-byte HID++ packet and read the response."""
+    buf = bytes(data) + bytes(20 - len(data))
+    os.write(fd, buf)
+    time.sleep(0.08)
+    resps = []
+    while True:
+        try:
+            resp = os.read(fd, 64)
+            resps.append(resp)
+        except BlockingIOError:
+            break
+    return resps
+
+
+def discover_features(fd, dev_index):
+    """Discover feature indices using IRoot.getFeature (feature 0x0000 at index 0x00).
+
+    Returns dict with keys: 'F_4522', 'F_8071', 'F_8081'.
+    """
+    features = {}
+    for name, feat_id in [("F_4522", 0x4522), ("F_8071", 0x8071), ("F_8081", 0x8081)]:
+        hi = (feat_id >> 8) & 0xFF
+        lo = feat_id & 0xFF
+        # IRoot.getFeature: long report (0x11), feature_index=0x00, function=0|sw_id=0x0D
+        pkt = [0x11, dev_index, 0x00, 0x0D, hi, lo, 0x00]
+        resps = send_packet(fd, pkt)
+        idx = None
+        for resp in resps:
+            # Response: [report_id, dev_index, feature_index(0x00), fn|sw, feat_idx, ...]
+            if len(resp) >= 5 and resp[2] == 0x00 and (resp[3] & 0x0F) == 0x0D:
+                idx = resp[4]
+                break
+        if idx is None or idx == 0:
+            resp_hex = [f"{b:02X}" for b in resps[0]] if resps else ["(no response)"]
+            raise RuntimeError(f"Feature 0x{feat_id:04X} not found. Response: {' '.join(resp_hex)}")
+        features[name] = idx
+    return features
+
+
+def begin_mode_set(fd, di, feat):
+    """Initialize mode setting (feature 0x4522)."""
+    send_packet(fd, [0x11, di, feat["F_4522"], 0x3E])
+    send_packet(fd, [0x11, di, feat["F_4522"], 0x1E])
+
+
+def initialize_mode_set(fd, di, feat):
+    """Initialize mode set on the RGB effects feature."""
+    send_packet(fd, [0x11, di, feat["F_8071"], 0x5E, 0x01, 0x03, 0x07])
+
+
+def send_mode(fd, di, feat, zone, mode, r, g, b, speed=50, brightness=100):
+    """Send a mode change command."""
+    pkt = [0x11, di, feat["F_8071"], FRAME_MODE,
+           zone, mode, r, g, b,
+           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+           0x01]  # byte 0x10
+
+    speed_val = 100 * speed
+    if mode == MODE_STATIC:
+        pkt[9] = 0x02
+    elif mode == MODE_BREATHING:
+        pkt[9] = speed_val >> 8
+        pkt[10] = speed_val & 0xFF
+        pkt[12] = brightness & 0xFF
+    elif mode == MODE_CYCLE:
+        pkt[11] = speed_val >> 8
+        pkt[12] = speed_val & 0xFF
+        pkt[13] = brightness & 0xFF
+    elif mode == MODE_WAVE:
+        pkt[12] = speed_val & 0xFF
+        pkt[13] = 0x01  # horizontal direction
+        pkt[14] = brightness & 0xFF
+        pkt[15] = speed_val >> 8
+    elif mode == MODE_RIPPLE:
+        pkt[11] = speed & 0xFF
+
+    send_packet(fd, pkt)
+
+
+def initialize_direct(fd, di, feat):
+    """Initialize direct (per-key) mode."""
+    send_packet(fd, [0x11, di, feat["F_4522"], 0x3E])
+    send_packet(fd, [0x11, di, feat["F_4522"], 0x1E])
+
+    pkt1 = [0x11, di, feat["F_8071"], 0x1E] + [0x00] * 12 + [0x01]
+    send_packet(fd, pkt1)
+
+    pkt2 = [0x11, di, feat["F_8071"], 0x1E, 0x01] + [0x00] * 11 + [0x01]
+    send_packet(fd, pkt2)
+
+
+def send_direct_frame(fd, di, feat, frame_type, frame_data):
+    """Send a direct LED frame via feature 0x8081."""
+    pkt = [0x11, di, feat["F_8081"], frame_type] + list(frame_data)
+    send_packet(fd, pkt)
+
+
+def send_commit(fd, di, feat):
+    """Commit direct mode changes."""
+    send_packet(fd, [0x11, di, feat["F_8081"], COMMIT_BYTE])
+
+
+def parse_color(color_str):
+    """Parse a hex color string like 'FF0000' into (r, g, b)."""
+    color_str = color_str.lstrip("#")
+    if len(color_str) != 6:
+        raise ValueError(f"Invalid color: {color_str} (expected 6 hex digits)")
+    return int(color_str[0:2], 16), int(color_str[2:4], 16), int(color_str[4:6], 16)
+
+
+def set_effect(fd, di, feat, mode, r, g, b, speed, brightness, logo_color=None):
+    """Set a keyboard effect (static, breathing, wave, etc.)."""
+    begin_mode_set(fd, di, feat)
+    initialize_mode_set(fd, di, feat)
+
+    # Map keyboard mode to appropriate logo mode
+    logo_mode = MODE_OFF
+    if mode == MODE_STATIC:
+        logo_mode = LOGO_MODE_STATIC
+    elif mode == MODE_BREATHING:
+        logo_mode = LOGO_MODE_BREATHING
+    elif mode in (MODE_CYCLE, MODE_WAVE):
+        logo_mode = LOGO_MODE_CYCLE
+    elif mode == MODE_RIPPLE:
+        logo_mode = LOGO_MODE_STATIC
+
+    send_mode(fd, di, feat, ZONE_KEYBOARD, mode, r, g, b, speed, brightness)
+
+    lr, lg, lb = logo_color if logo_color else (r, g, b)
+    send_mode(fd, di, feat, ZONE_LOGO, logo_mode, lr, lg, lb, speed, brightness)
+
+
+def set_direct_keys(fd, di, feat, key_colors, base_color=None):
+    """Set per-key colors in direct mode.
+
+    key_colors: dict of key_name -> (r, g, b)
+    base_color: optional (r, g, b) for all unspecified keys
+    """
+    initialize_direct(fd, di, feat)
+
+    keys_to_set = []
+    for key_name, (r, g, b) in key_colors.items():
+        code = KEYS[key_name.lower()]
+        keys_to_set.append((code, r, g, b))
+
+    if base_color:
+        br, bg, bb = base_color
+        specified = {k.lower() for k in key_colors}
+        for key_name, code in KEYS.items():
+            if key_name not in specified:
+                keys_to_set.append((code, br, bg, bb))
+
+    # Send frames (up to 4 keys per little frame)
+    for i in range(0, len(keys_to_set), 4):
+        batch = keys_to_set[i:i + 4]
+        frame_data = []
+        for code, r, g, b in batch:
+            frame_data.extend([code, r, g, b])
+        send_direct_frame(fd, di, feat, FRAME_LITTLE, frame_data)
+
+    send_commit(fd, di, feat)
+
+
+def debug_scan():
+    """Comprehensive scan of all Logitech HID devices and communication paths."""
+    print("=" * 60)
+    print("G915-LED DEBUG SCAN")
+    print("=" * 60)
+
+    # 1. List all Logitech hidraw devices
+    print("\n[1] Logitech HID devices:")
+    devices = []
+    for path in sorted(glob.glob("/sys/class/hidraw/hidraw*/device/uevent")):
+        with open(path) as f:
+            content = f.read()
+        if "046D" not in content:
+            continue
+        hidraw = path.split("/")[4]
+        info = {}
+        for line in content.strip().splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                info[k] = v
+        dev = f"/dev/{hidraw}"
+        pid = info.get("HID_ID", "").split(":")[-1].lstrip("0") or "?"
+        phys = info.get("HID_PHYS", "?")
+        driver = info.get("DRIVER", "?")
+        name = info.get("HID_NAME", "?")
+        uniq = info.get("HID_UNIQ", "")
+        print(f"  {hidraw:10s} PID={pid:5s} drv={driver:24s} phys={phys}")
+        print(f"             name={name} uniq={uniq}")
+        devices.append((dev, hidraw, pid, driver, phys, uniq))
+
+    # 2. Check driver bindings
+    print("\n[2] logitech-hidpp-device bindings:")
+    try:
+        for entry in sorted(os.listdir("/sys/bus/hid/drivers/logitech-hidpp-device/")):
+            if entry.startswith("0003:"):
+                link = os.readlink(f"/sys/bus/hid/drivers/logitech-hidpp-device/{entry}")
+                print(f"  {entry} -> {link}")
+    except FileNotFoundError:
+        print("  Driver not loaded")
+
+    # 3. Try writing to each Logitech hidraw
+    print("\n[3] Communication test (write + read):")
+    HID_ERROR_NAMES = {
+        0x01: "unknown", 0x02: "invalid_subid/argument", 0x03: "invalid_address/out_of_range",
+        0x04: "invalid_value/hw_error", 0x05: "connect_fail/login_required",
+        0x06: "too_many_devices/invalid_feature_idx", 0x07: "already_exists/invalid_function",
+        0x08: "busy", 0x09: "unknown_device/unsupported", 0x0A: "resource_error",
+        0x0B: "request_unavailable",
+    }
+
+    for dev, hidraw, pid, driver, phys, uniq in devices:
+        print(f"\n  --- {hidraw} (PID={pid}, {driver}) ---")
+        try:
+            fd = os.open(dev, os.O_RDWR | os.O_NONBLOCK)
+        except PermissionError:
+            print(f"    SKIP: permission denied")
+            continue
+        except Exception as e:
+            print(f"    SKIP: {e}")
+            continue
+
+        # Try both short (0x10) and long (0x11) reports with dev indices 0x01 and 0xFF
+        for report_id, rname in [(0x10, "short"), (0x11, "long")]:
+            for dev_idx in [0x01, 0xFF]:
+                # getFeature for 0x8071 (Color LED Effects)
+                pkt = [report_id, dev_idx, 0x00, 0x0D, 0x80, 0x71, 0x00]
+                if report_id == 0x11:
+                    buf = bytes(pkt) + bytes(20 - len(pkt))
+                else:
+                    buf = bytes(pkt)
+                try:
+                    os.write(fd, buf)
+                except BrokenPipeError:
+                    print(f"    {rname} di=0x{dev_idx:02X}: BROKEN PIPE (driver blocks writes)")
+                    continue
+                except Exception as e:
+                    print(f"    {rname} di=0x{dev_idx:02X}: WRITE ERROR: {e}")
+                    continue
+
+                time.sleep(0.15)
+                resps = []
+                while True:
+                    try:
+                        resp = os.read(fd, 64)
+                        resps.append(resp)
+                    except BlockingIOError:
+                        break
+
+                if not resps:
+                    print(f"    {rname} di=0x{dev_idx:02X}: no response")
+                    continue
+
+                for resp in resps:
+                    hex_str = " ".join(f"{b:02X}" for b in resp[:min(len(resp), 10)])
+                    # Parse response
+                    if len(resp) >= 4 and resp[2] == 0x8F:
+                        err = resp[5] if len(resp) > 5 else 0
+                        err_name = HID_ERROR_NAMES.get(err, f"0x{err:02X}")
+                        print(f"    {rname} di=0x{dev_idx:02X}: ERROR {err_name} [{hex_str}]")
+                    elif len(resp) >= 5 and resp[2] == 0x00:
+                        idx = resp[4]
+                        if idx > 0:
+                            print(f"    {rname} di=0x{dev_idx:02X}: FOUND feat 0x8071 at index 0x{idx:02X} [{hex_str}]")
+                        else:
+                            print(f"    {rname} di=0x{dev_idx:02X}: feat not found [{hex_str}]")
+                    else:
+                        print(f"    {rname} di=0x{dev_idx:02X}: [{hex_str}]")
+
+        os.close(fd)
+
+    print("\n" + "=" * 60)
+    print("DONE")
+    print("=" * 60)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Control Logitech G915 TKL backlighting on Linux",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # static
+    p = sub.add_parser("static", help="Solid color")
+    p.add_argument("color", help="Hex color (e.g. FF0000)")
+    p.add_argument("--logo", help="Separate logo hex color")
+
+    # breathing
+    p = sub.add_parser("breathing", help="Breathing effect")
+    p.add_argument("color", help="Hex color")
+    p.add_argument("--speed", type=int, default=50, help="Speed 10-200 (default: 50)")
+    p.add_argument("--logo", help="Separate logo hex color")
+
+    # cycle
+    p = sub.add_parser("cycle", help="Spectrum cycle")
+    p.add_argument("--speed", type=int, default=50, help="Speed 10-200 (default: 50)")
+
+    # wave
+    p = sub.add_parser("wave", help="Rainbow wave")
+    p.add_argument("--speed", type=int, default=50, help="Speed 10-200 (default: 50)")
+
+    # ripple
+    p = sub.add_parser("ripple", help="Reactive ripple on keypress")
+    p.add_argument("color", nargs="?", default="FFFFFF", help="Hex color (default: white)")
+    p.add_argument("--speed", type=int, default=20, help="Speed 2-200 (default: 20)")
+
+    # off
+    sub.add_parser("off", help="Turn off backlighting")
+
+    # direct
+    p = sub.add_parser("direct", help="Per-key colors (e.g. W=FF0000 A=00FF00)")
+    p.add_argument("keys", nargs="+", help="KEY=COLOR pairs")
+    p.add_argument("--base", help="Base color for unspecified keys")
+
+    # list-keys
+    sub.add_parser("list-keys", help="List available key names")
+
+    # debug
+    sub.add_parser("debug", help="Scan all Logitech devices and test communication")
+
+    args = parser.parse_args()
+
+    if args.command == "list-keys":
+        for name in sorted(KEYS.keys()):
+            print(name)
+        return
+
+    if args.command == "debug":
+        debug_scan()
+        return
+
+    # First try without root
+    hidraw, di = find_g915_hidraw()
+    if not hidraw and os.geteuid() != 0:
+        # Need root to bind hid-generic to input2
+        print("Escalating to root to bind driver...", file=sys.stderr)
+        ensure_root()
+    if not hidraw:
+        hidraw, di = find_g915_hidraw()
+    if not hidraw:
+        print("Error: G915 TKL not found. Is it connected via USB?", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Using {hidraw} (dev_index=0x{di:02X})", file=sys.stderr)
+
+    fd = os.open(hidraw, os.O_RDWR | os.O_NONBLOCK)
+
+    try:
+        # Discover feature indices dynamically
+        feat = discover_features(fd, di)
+        print(f"Features: 4522=0x{feat['F_4522']:02X}, 8071=0x{feat['F_8071']:02X}, 8081=0x{feat['F_8081']:02X}", file=sys.stderr)
+
+        if args.command == "static":
+            r, g, b = parse_color(args.color)
+            logo = parse_color(args.logo) if args.logo else None
+            set_effect(fd, di, feat, MODE_STATIC, r, g, b, 50, 100, logo)
+
+        elif args.command == "breathing":
+            r, g, b = parse_color(args.color)
+            logo = parse_color(args.logo) if args.logo else None
+            set_effect(fd, di, feat, MODE_BREATHING, r, g, b, args.speed, 100, logo)
+
+        elif args.command == "cycle":
+            set_effect(fd, di, feat, MODE_CYCLE, 0, 0, 0, args.speed, 100)
+
+        elif args.command == "wave":
+            set_effect(fd, di, feat, MODE_WAVE, 0, 0, 0, args.speed, 100)
+
+        elif args.command == "ripple":
+            r, g, b = parse_color(args.color)
+            set_effect(fd, di, feat, MODE_RIPPLE, r, g, b, args.speed, 100)
+
+        elif args.command == "off":
+            begin_mode_set(fd, di, feat)
+            initialize_mode_set(fd, di, feat)
+            send_mode(fd, di, feat, ZONE_KEYBOARD, MODE_OFF, 0, 0, 0, 0, 0)
+            send_mode(fd, di, feat, ZONE_LOGO, LOGO_MODE_OFF, 0, 0, 0, 0, 0)
+
+        elif args.command == "direct":
+            key_colors = {}
+            for pair in args.keys:
+                key, color = pair.split("=", 1)
+                key_colors[key] = parse_color(color)
+            base = parse_color(args.base) if args.base else None
+            set_direct_keys(fd, di, feat, key_colors, base)
+
+    finally:
+        os.close(fd)
+
+
+if __name__ == "__main__":
+    main()
