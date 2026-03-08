@@ -88,6 +88,9 @@ KEYS = {
     # Modifiers (custom firmware codes, NOT HID-3)
     "menu": 0x62, "lctrl": 0x68, "lshift": 0x69, "lalt": 0x6A,
     "lwin": 0x6B, "rctrl": 0x6C, "rshift": 0x6D, "ralt": 0x6E, "fn": 0x6F,
+    # Media keys and logo
+    "brightness": 0x99, "play": 0x9B, "mute": 0x9C, "next": 0x9D, "prev": 0x9E,
+    "logo": 0xD2,
 }
 
 

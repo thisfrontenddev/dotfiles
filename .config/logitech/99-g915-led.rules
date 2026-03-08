@@ -1,0 +1,9 @@
+# Re-apply G915 TKL per-key lighting on USB connect
+# Triggers on hidraw creation for the G915 TKL HID++ interface
+ACTION=="add", SUBSYSTEM=="hidraw", \
+  ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c545", \
+  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/logitech/g915-resume.sh post &'"
+
+ACTION=="add", SUBSYSTEM=="hidraw", \
+  ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c343", \
+  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/logitech/g915-resume.sh post &'"

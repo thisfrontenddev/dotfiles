@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Logitech device setup for Fedora (G915 TKL + G PRO X Superlight)
-# Installs: Solaar, OpenRGB, Piper
-# Configures: udev rules, systemd sleep hook for persistent backlighting
+# Installs: Solaar, Piper
+# Configures: udev rule for G915 TKL lighting persistence
 #
 # Safe to run multiple times — all operations are idempotent.
 #
@@ -18,49 +18,7 @@ warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 skip() { echo -e "${YELLOW}[=]${NC} $1 (already done)"; }
 error() { echo -e "${RED}[x]${NC} $1"; }
 
-# Write a file only if its content differs (or it doesn't exist).
-# Usage: write_if_changed DEST_PATH CONTENT
-# For root-owned files, pass DEST_PATH starting with / and it will use sudo.
-write_if_changed() {
-    local dest="$1"
-    local content="$2"
-    local needs_sudo=false
-    local dest_dir
-    dest_dir="$(dirname "$dest")"
-
-    # Determine if we need sudo (file outside $HOME)
-    if [[ "$dest" != "$HOME"* ]]; then
-        needs_sudo=true
-    fi
-
-    # Check if file already has the exact content
-    if [[ -f "$dest" ]]; then
-        local existing
-        if $needs_sudo; then
-            existing="$(sudo cat "$dest")"
-        else
-            existing="$(cat "$dest")"
-        fi
-        if [[ "$existing" == "$content" ]]; then
-            return 1 # signal: no change
-        fi
-    fi
-
-    # Ensure directory exists
-    if $needs_sudo; then
-        sudo mkdir -p "$dest_dir"
-    else
-        mkdir -p "$dest_dir"
-    fi
-
-    # Write the file
-    if $needs_sudo; then
-        echo "$content" | sudo tee "$dest" > /dev/null
-    else
-        echo "$content" > "$dest"
-    fi
-    return 0 # signal: changed
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Pre-flight checks ---
 if [[ ! -f /etc/fedora-release ]]; then
@@ -74,7 +32,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 # --- Install packages ---
-PACKAGES=(solaar openrgb openrgb-udev-rules piper)
+PACKAGES=(solaar piper)
 missing=()
 for pkg in "${PACKAGES[@]}"; do
     if ! rpm -q "$pkg" &>/dev/null; then
@@ -85,19 +43,37 @@ done
 if [[ ${#missing[@]} -gt 0 ]]; then
     info "Installing ${missing[*]}..."
     sudo dnf install -y "${missing[@]}"
-
-    # Only reload udev after a fresh openrgb-udev-rules install
-    if [[ " ${missing[*]} " == *" openrgb-udev-rules "* ]]; then
-        info "Reloading udev rules..."
-        sudo udevadm control --reload-rules
-        sudo udevadm trigger
-    fi
 else
     skip "All packages installed"
 fi
 
+# --- Remove OpenRGB if present (replaced by g915-led) ---
+if rpm -q openrgb &>/dev/null; then
+    info "Removing OpenRGB (replaced by g915-led)..."
+    sudo dnf remove -y openrgb
+fi
+
+# --- Remove old OpenRGB artifacts ---
+OLD_SLEEP_HOOK="/usr/lib/systemd/system-sleep/openrgb-resume.sh"
+if [[ -f "$OLD_SLEEP_HOOK" ]]; then
+    info "Removing old OpenRGB sleep hook..."
+    sudo rm -f "$OLD_SLEEP_HOOK"
+fi
+
+OLD_SERVICE="$HOME/.config/systemd/user/openrgb.service"
+if [[ -f "$OLD_SERVICE" ]]; then
+    systemctl --user disable --now openrgb.service 2>/dev/null || true
+    rm -f "$OLD_SERVICE"
+    systemctl --user daemon-reload
+    info "Removed old OpenRGB systemd service."
+fi
+
 # --- Solaar autostart ---
-SOLAAR_DESKTOP='[Desktop Entry]
+SOLAAR_DESKTOP="$HOME/.config/autostart/solaar.desktop"
+if [[ ! -f "$SOLAAR_DESKTOP" ]]; then
+    mkdir -p "$(dirname "$SOLAAR_DESKTOP")"
+    cat > "$SOLAAR_DESKTOP" <<'EOF'
+[Desktop Entry]
 Name=Solaar
 Comment=Logitech device manager
 Exec=solaar --window=hide
@@ -105,116 +81,56 @@ Terminal=false
 Type=Application
 Icon=solaar
 Categories=Utility;
-X-GNOME-Autostart-enabled=true'
-
-if write_if_changed "$HOME/.config/autostart/solaar.desktop" "$SOLAAR_DESKTOP"; then
+X-GNOME-Autostart-enabled=true
+EOF
     info "Added Solaar to autostart."
 else
     skip "Solaar autostart"
 fi
 
-# --- OpenRGB systemd user service ---
-OPENRGB_SERVICE='[Unit]
-Description=OpenRGB daemon
-After=graphical-session.target
+# --- G915 TKL udev rule for lighting persistence ---
+UDEV_RULE="/etc/udev/rules.d/99-g915-led.rules"
+UDEV_SOURCE="$SCRIPT_DIR/99-g915-led.rules"
 
-[Service]
-ExecStart=/usr/bin/openrgb --server
-Restart=on-failure
-RestartSec=5
+if [[ ! -f "$UDEV_SOURCE" ]]; then
+    error "Missing $UDEV_SOURCE"
+    exit 1
+fi
 
-[Install]
-WantedBy=graphical-session.target'
-
-service_changed=false
-if write_if_changed "$HOME/.config/systemd/user/openrgb.service" "$OPENRGB_SERVICE"; then
-    info "Wrote OpenRGB systemd user service."
-    service_changed=true
+if [[ -L "$UDEV_RULE" ]] && [[ "$(readlink "$UDEV_RULE")" == "$UDEV_SOURCE" ]]; then
+    skip "G915 udev rule"
 else
-    skip "OpenRGB systemd service file"
+    sudo ln -sf "$UDEV_SOURCE" "$UDEV_RULE"
+    sudo udevadm control --reload-rules
+    info "Installed G915 udev rule."
 fi
 
-if $service_changed; then
-    systemctl --user daemon-reload
-fi
+# --- G915 TKL onboard profile (flash) ---
+info "Writing onboard profile to G915 TKL flash (all 3 slots)..."
+python3 "$SCRIPT_DIR/g915-profile-write.py" 2>/dev/null && \
+    info "Onboard profiles written (static blue + yellow logo)." || \
+    warn "Could not write onboard profiles (keyboard may not be connected)."
 
-if ! systemctl --user is-enabled openrgb.service &>/dev/null; then
-    systemctl --user enable openrgb.service
-    info "Enabled OpenRGB service."
-else
-    skip "OpenRGB service already enabled"
-fi
-
-if ! systemctl --user is-active openrgb.service &>/dev/null; then
-    systemctl --user start openrgb.service || warn "OpenRGB service failed to start (will work after relogin)"
-    info "Started OpenRGB service."
-elif $service_changed; then
-    systemctl --user restart openrgb.service || warn "OpenRGB service failed to restart"
-    info "Restarted OpenRGB service (config changed)."
-else
-    skip "OpenRGB service already running"
-fi
-
-# --- Sleep/resume hook to re-apply OpenRGB profile ---
-SLEEP_HOOK='#!/usr/bin/env bash
-# Re-apply OpenRGB profile after resume from sleep
-# Logitech G915 TKL reverts to rainbow mode after suspend
-
-case "$1" in
-    post)
-        # Give devices time to re-enumerate after wake
-        sleep 3
-        # Run as the desktop user
-        DESKTOP_USER=$(logname 2>/dev/null || who | awk '\''NR==1{print $1}'\'')
-        if [[ -n "$DESKTOP_USER" ]]; then
-            PROFILE_DIR="/home/${DESKTOP_USER}/.config/OpenRGB"
-            if [[ -d "$PROFILE_DIR" ]]; then
-                if [[ -f "$PROFILE_DIR/default.orp" ]]; then
-                    su - "$DESKTOP_USER" -c "openrgb --profile default" &
-                else
-                    FIRST_PROFILE=$(find "$PROFILE_DIR" -maxdepth 1 -name "*.orp" -print -quit 2>/dev/null)
-                    if [[ -n "$FIRST_PROFILE" ]]; then
-                        su - "$DESKTOP_USER" -c "openrgb --profile \"$FIRST_PROFILE\"" &
-                    fi
-                fi
-            fi
-        fi
-        ;;
-esac'
-
-SLEEP_HOOK_PATH="/usr/lib/systemd/system-sleep/openrgb-resume.sh"
-
-if write_if_changed "$SLEEP_HOOK_PATH" "$SLEEP_HOOK"; then
-    sudo chmod +x "$SLEEP_HOOK_PATH"
-    info "Installed sleep/resume hook."
-else
-    skip "Sleep/resume hook"
-fi
+# --- Apply per-key lighting now ---
+info "Applying per-key lighting..."
+"$SCRIPT_DIR/g915-resume.sh" post 2>/dev/null && \
+    info "Per-key lighting applied." || \
+    warn "Could not apply per-key lighting."
 
 # --- Print summary ---
 echo ""
 info "Setup complete!"
 echo ""
-echo "  Solaar       - Device manager (battery, pairing, DPI)"
-echo "                 Starts minimized on login"
-echo "                 Run: solaar"
+echo "  g915-led     - Per-key RGB control for G915 TKL"
+echo "                 Run: ~/.config/logitech/g915-led --help"
 echo ""
-echo "  OpenRGB      - RGB backlighting for G915 TKL"
-echo "                 Running as systemd user service"
-echo "                 Run: openrgb"
+echo "  Lighting     - Blue keys, yellow modifiers/media/logo"
+echo "                 Onboard profile: static blue+yellow (survives power loss)"
+echo "                 udev rule: re-applies per-key colors on reconnect"
+echo ""
+echo "  Solaar       - Device manager (battery, pairing)"
+echo "                 Starts minimized on login"
 echo ""
 echo "  Piper        - Mouse config for G PRO X Superlight"
 echo "                 (DPI, buttons, polling rate)"
-echo "                 Run: piper"
-echo ""
-echo -e "${YELLOW}Next steps:${NC}"
-echo "  1. Open OpenRGB, set your preferred lighting, and save as 'default' profile"
-echo "     (File > Save Profile > name it 'default')"
-echo "     This profile auto-applies after sleep/resume."
-echo ""
-echo "  2. Open Solaar to verify both devices are detected."
-echo ""
-echo "  3. Open Piper to configure your Superlight DPI/buttons."
-echo ""
-echo "  4. If OpenRGB doesn't detect the G915 TKL, try replugging the USB cable."
 echo ""

@@ -139,6 +139,33 @@ Modifier keys use **custom firmware codes** (0x62-0x6F), completely unrelated to
 
 Codes 0x61, 0x63-0x67 exist in the firmware bitmap but don't visibly map to any key on TKL (may be full-size or numpad keys).
 
+Media keys and logo use codes in the 0x99-0xD2 range (NOT addressable via zone commands in direct mode, only via per-key frames):
+| Code | Key |
+|------|-----|
+| 0x99 | Brightness/Lighting key |
+| 0x9B | Play/Pause |
+| 0x9C | Mute |
+| 0x9D | Next Track |
+| 0x9E | Previous Track |
+| 0xD2 | Logo |
+
+## Onboard Profiles (Feature 0x8100)
+
+The G915 TKL has 3 writable profile slots (M1=sector 0x0001, M2=0x0002, M3=0x0003) plus 3 factory (OOB) profiles at sectors 0x0101-0x0103. Feature 0x8100 is at index 0x14 (wireless).
+
+- **Profile format**: 4, sector size 255 bytes (240 readable + 15 CRC/padding)
+- **LED effects**: 4 zone slots × 11 bytes at offset 208 (only zones 0-1 visible on TKL: logo + keyboard)
+- **CRC**: CRC-CCITT (seed 0xFFFF, poly 0x1021) over first 253 bytes, stored big-endian at bytes 253-254
+- **Write protocol**: memoryAddrWrite (fn 0x60) → memoryWrite (fn 0x70, 16 chunks) → memoryWriteEnd (fn 0x80)
+- **Sector size quirk**: 255 bytes, not a multiple of 16. Write 16 full chunks (256 bytes, last byte padding). Read uses overlap trick at offset 239.
+- **Modes**: onboard (0x01) = keyboard uses stored profiles; host (0x02) = software controls lighting live
+
+## Persistence Strategy
+
+- **Onboard profile** in flash provides fallback lighting (static colors per zone) that survives power loss, KVM drops, suspend
+- **Per-key direct mode** overlays individual key colors when OS is running (applied via udev rule on USB reconnect)
+- Logo is addressable as per-key code 0xD2 in direct mode (zone commands via 0x8071 don't work after direct mode init)
+
 ### HID++ Error Codes
 | Code | HID++ 2.0 | HID++ 1.0 (receiver) |
 |------|-----------|---------------------|
