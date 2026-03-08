@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# nova-route — move a running app's audio to a Nova sink
+# Usage: nova-route <app-name-substring> <NovaGame|NovaChat|NovaMedia>
+# Example: nova-route Discord NovaChat
+#          nova-route Cider NovaMedia
+#          nova-route firefox NovaGame
+#
+# PipeWire/WirePlumber remembers the assignment, so you only need to do this once per app.
+
+set -euo pipefail
+
+if [[ $# -lt 2 ]]; then
+    echo "Usage: nova-route <app-name> <NovaGame|NovaChat|NovaMedia>"
+    echo ""
+    echo "Running audio streams:"
+    pactl list sink-inputs 2>/dev/null | grep -E "(application.name|application.process.binary)" | \
+        sed 's/.*= "\(.*\)"/  \1/' | sort -u
+    exit 1
+fi
+
+APP="$1"
+SINK="$2"
+
+# Verify the sink exists
+if ! pactl list sinks short 2>/dev/null | grep -q "$SINK"; then
+    echo "ERROR: Sink '$SINK' not found. Available sinks:"
+    pactl list sinks short | grep -i nova
+    exit 1
+fi
+
+# Find matching audio stream(s) by checking each sink-input's properties
+MOVED=0
+while IFS= read -r idx; do
+    [[ -z "$idx" ]] && continue
+    PROPS=$(pactl list sink-inputs 2>/dev/null | sed -n "/Sink Input #${idx}/,/Sink Input #/p")
+    APP_NAME=$(echo "$PROPS" | grep "application.name" | head -1 | sed 's/.*= "\(.*\)"/\1/')
+    APP_BIN=$(echo "$PROPS" | grep "application.process.binary" | head -1 | sed 's/.*= "\(.*\)"/\1/')
+
+    if echo "$APP_NAME" | grep -qi "$APP" || echo "$APP_BIN" | grep -qi "$APP"; then
+        pactl move-sink-input "$idx" "$SINK" 2>/dev/null && MOVED=$((MOVED+1))
+    fi
+done < <(pactl list sink-inputs short 2>/dev/null | awk '{print $1}')
+
+if [[ $MOVED -gt 0 ]]; then
+    echo "Moved $MOVED stream(s) matching '$APP' → $SINK"
+else
+    echo "No running streams found matching '$APP'"
+    echo ""
+    echo "Running streams:"
+    pactl list sink-inputs 2>/dev/null | grep -E "(application.name|application.process.binary)" | \
+        sed 's/.*= "\(.*\)"/  \1/' | sort -u
+fi

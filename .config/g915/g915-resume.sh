@@ -3,7 +3,7 @@
 # The onboard profile provides a blue/yellow static fallback;
 # this script overlays per-key colors once the OS is back.
 
-G915_LED="/home/void/.config/logitech/g915-led"
+G915_LED="/home/void/.config/g915/bin/g915-led"
 
 # Modifier/special keys in electric yellow, everything else blue
 apply_lighting() {
@@ -17,10 +17,17 @@ apply_lighting() {
         --base 0000FF
 }
 
+LOG="/tmp/g915-resume.log"
+
 case "$1" in
     post)
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Resume triggered, waiting for re-enumerate..." >> "$LOG"
         # Give the keyboard time to re-enumerate via KVM
         sleep 5
-        apply_lighting
+        if apply_lighting >> "$LOG" 2>&1; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Lighting applied successfully" >> "$LOG"
+        else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Failed to apply lighting (exit $?)" >> "$LOG"
+        fi
         ;;
 esac

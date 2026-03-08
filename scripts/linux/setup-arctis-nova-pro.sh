@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Setup script for SteelSeries Arctis Nova Pro Wireless on Linux (Fedora)
-# Installs: nova-chatmix-linux, PipeWire virtual sinks, pavucontrol, easyeffects, qpwgraph
-# Creates: udev rules, systemd user service, PipeWire Media sink, app-routing helper
+# Installs: PipeWire virtual sinks, pavucontrol, easyeffects, qpwgraph
+# Symlinks: udev rules, nova-chatmix, nova-route from ~/.config/steelseries/
+# Creates: systemd user service
 
-NOVA_CHATMIX_DIR="$HOME/.local/share/nova-chatmix-linux"
 NOVA_CHATMIX_BIN="$HOME/.local/bin/nova-chatmix"
 NOVA_ROUTE_BIN="$HOME/.local/bin/nova-route"
 
@@ -34,32 +34,38 @@ sudo dnf install -y --skip-unavailable \
 # ── udev rules for non-root HID access + systemd auto-start ──
 echo ""
 echo "==> Installing udev rules..."
-UDEV_RULE='SUBSYSTEMS=="usb", ATTRS{idVendor}=="'"${STEELSERIES_VID}"'", ATTRS{idProduct}=="'"${STEELSERIES_PID}"'", TAG+="uaccess", ENV{SYSTEMD_USER_WANTS}="nova-chatmix.service"'
+UDEV_RULE_SRC="$HOME/.config/steelseries/50-nova-pro-wireless.rules"
+UDEV_RULE_DST="/etc/udev/rules.d/50-nova-pro-wireless.rules"
 
-if [[ -f /etc/udev/rules.d/50-nova-pro-wireless.rules ]] && grep -qF "${STEELSERIES_PID}" /etc/udev/rules.d/50-nova-pro-wireless.rules; then
-    echo "    udev rules already installed"
+if [[ ! -f "$UDEV_RULE_SRC" ]]; then
+    echo "    ERROR: Source rule not found at $UDEV_RULE_SRC"
+    exit 1
+fi
+
+if [[ -L "$UDEV_RULE_DST" ]] && [[ "$(readlink -f "$UDEV_RULE_DST")" == "$UDEV_RULE_SRC" ]]; then
+    echo "    udev rules already symlinked"
 else
-    echo "$UDEV_RULE" | sudo tee /etc/udev/rules.d/50-nova-pro-wireless.rules >/dev/null
+    sudo ln -sf "$UDEV_RULE_SRC" "$UDEV_RULE_DST"
     sudo udevadm control --reload-rules
     sudo udevadm trigger
-    echo "    udev rules installed and reloaded"
+    echo "    udev rules symlinked and reloaded"
 fi
 
-# ── Install nova-chatmix-linux ──
+# ── Install nova-chatmix ──
 echo ""
-echo "==> Installing nova-chatmix-linux..."
-if [[ -d "$NOVA_CHATMIX_DIR/.git" ]]; then
-    echo "    Updating existing clone..."
-    git -C "$NOVA_CHATMIX_DIR" pull --quiet
-else
-    rm -rf "$NOVA_CHATMIX_DIR"
-    git clone https://github.com/Dymstro/nova-chatmix-linux.git "$NOVA_CHATMIX_DIR"
+echo "==> Installing nova-chatmix..."
+NOVA_CHATMIX_SRC="$HOME/.config/steelseries/nova-chatmix"
+if [[ ! -f "$NOVA_CHATMIX_SRC" ]]; then
+    echo "    ERROR: Missing $NOVA_CHATMIX_SRC"
+    exit 1
 fi
-
 mkdir -p "$HOME/.local/bin"
-cp "$NOVA_CHATMIX_DIR/nova-chatmix.py" "$NOVA_CHATMIX_BIN"
-chmod +x "$NOVA_CHATMIX_BIN"
-echo "    Installed to $NOVA_CHATMIX_BIN"
+if [[ -L "$NOVA_CHATMIX_BIN" ]] && [[ "$(readlink -f "$NOVA_CHATMIX_BIN")" == "$NOVA_CHATMIX_SRC" ]]; then
+    echo "    nova-chatmix already symlinked"
+else
+    ln -sf "$NOVA_CHATMIX_SRC" "$NOVA_CHATMIX_BIN"
+    echo "    Symlinked nova-chatmix to $NOVA_CHATMIX_BIN"
+fi
 
 # ── systemd user service for nova-chatmix ──
 echo ""
@@ -86,34 +92,18 @@ systemctl --user daemon-reload
 systemctl --user enable nova-chatmix.service
 echo "    Service installed and enabled"
 
-# ── PipeWire virtual sink: Media ──
-# nova-chatmix creates NovaGame/NovaChat sinks itself via pw-loopback
-# We add a persistent NovaMedia sink for music/videos
+# ── PipeWire virtual sinks: Game, Chat, Media ──
+# All three are persistent PipeWire modules that route to the default output
+# nova-chatmix only handles the HID ChatMix dial for Game/Chat volume control
 echo ""
-echo "==> Configuring PipeWire NovaMedia virtual sink..."
-mkdir -p "$HOME/.config/pipewire/pipewire.conf.d"
-cat > "$HOME/.config/pipewire/pipewire.conf.d/10-nova-media-sink.conf" << 'EOF'
-# Persistent "NovaMedia" virtual sink for music/videos/browser
-# NovaGame and NovaChat sinks are managed by the nova-chatmix service
-context.modules = [
-    {
-        name = libpipewire-module-loopback
-        args = {
-            node.description = "NovaMedia"
-            capture.props = {
-                media.class    = Audio/Sink
-                node.name      = NovaMedia
-                audio.position = [ FL FR ]
-            }
-            playback.props = {
-                node.name      = nova-media-output
-                audio.position = [ FL FR ]
-            }
-        }
-    }
-]
-EOF
-echo "    Created NovaMedia virtual sink"
+echo "==> PipeWire virtual sinks..."
+if [[ -f "$HOME/.config/pipewire/pipewire.conf.d/10-nova-virtual-sinks.conf" ]]; then
+    echo "    Sink config already present (NovaGame, NovaChat, NovaMedia)"
+else
+    echo "    ERROR: Missing $HOME/.config/pipewire/pipewire.conf.d/10-nova-virtual-sinks.conf"
+    echo "    This file should be part of your dotfiles"
+    exit 1
+fi
 
 # ── PipeWire pulse rules: rename Electron apps ──
 # Electron apps report as "Chromium" to PipeWire — this fixes display names
@@ -144,62 +134,17 @@ echo "    Electron app rename rules installed"
 # remembers the choice automatically across reboots.
 echo ""
 echo "==> Installing nova-route helper..."
-cat > "$NOVA_ROUTE_BIN" << 'ROUTESCRIPT'
-#!/usr/bin/env bash
-# nova-route — move a running app's audio to a Nova sink
-# Usage: nova-route <app-name-substring> <NovaGame|NovaChat|NovaMedia>
-# Example: nova-route Discord NovaChat
-#          nova-route Cider NovaMedia
-#          nova-route firefox NovaGame
-#
-# PipeWire/WirePlumber remembers the assignment, so you only need to do this once per app.
-
-set -euo pipefail
-
-if [[ $# -lt 2 ]]; then
-    echo "Usage: nova-route <app-name> <NovaGame|NovaChat|NovaMedia>"
-    echo ""
-    echo "Running audio streams:"
-    pactl list sink-inputs 2>/dev/null | grep -E "(application.name|application.process.binary)" | \
-        sed 's/.*= "\(.*\)"/  \1/' | sort -u
+NOVA_ROUTE_SRC="$HOME/.config/steelseries/nova-route"
+if [[ ! -f "$NOVA_ROUTE_SRC" ]]; then
+    echo "    ERROR: Missing $NOVA_ROUTE_SRC"
     exit 1
 fi
-
-APP="$1"
-SINK="$2"
-
-# Verify the sink exists
-if ! pactl list sinks short 2>/dev/null | grep -q "$SINK"; then
-    echo "ERROR: Sink '$SINK' not found. Available sinks:"
-    pactl list sinks short | grep -i nova
-    exit 1
-fi
-
-# Find matching audio stream(s) by checking each sink-input's properties
-MOVED=0
-while IFS= read -r idx; do
-    [[ -z "$idx" ]] && continue
-    PROPS=$(pactl list sink-inputs 2>/dev/null | sed -n "/Sink Input #${idx}/,/Sink Input #/p")
-    APP_NAME=$(echo "$PROPS" | grep "application.name" | head -1 | sed 's/.*= "\(.*\)"/\1/')
-    APP_BIN=$(echo "$PROPS" | grep "application.process.binary" | head -1 | sed 's/.*= "\(.*\)"/\1/')
-
-    if echo "$APP_NAME" | grep -qi "$APP" || echo "$APP_BIN" | grep -qi "$APP"; then
-        pactl move-sink-input "$idx" "$SINK" 2>/dev/null && MOVED=$((MOVED+1))
-    fi
-done < <(pactl list sink-inputs short 2>/dev/null | awk '{print $1}')
-
-if [[ $MOVED -gt 0 ]]; then
-    echo "Moved $MOVED stream(s) matching '$APP' → $SINK"
+if [[ -L "$NOVA_ROUTE_BIN" ]] && [[ "$(readlink -f "$NOVA_ROUTE_BIN")" == "$NOVA_ROUTE_SRC" ]]; then
+    echo "    nova-route already symlinked"
 else
-    echo "No running streams found matching '$APP'"
-    echo ""
-    echo "Running streams:"
-    pactl list sink-inputs 2>/dev/null | grep -E "(application.name|application.process.binary)" | \
-        sed 's/.*= "\(.*\)"/  \1/' | sort -u
+    ln -sf "$NOVA_ROUTE_SRC" "$NOVA_ROUTE_BIN"
+    echo "    Symlinked nova-route to $NOVA_ROUTE_BIN"
 fi
-ROUTESCRIPT
-chmod +x "$NOVA_ROUTE_BIN"
-echo "    Installed nova-route to $NOVA_ROUTE_BIN"
 
 # ── Clean up any broken WirePlumber configs from previous runs ──
 rm -f "$HOME/.config/wireplumber/wireplumber.conf.d/50-nova-routing.conf"

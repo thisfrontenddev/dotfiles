@@ -44,7 +44,6 @@ mainbox {
 	padding:						@gap;
 	background-color:				transparent;
 	margin:							0;
-	spacing:						0;
 	children:						[ "inputbar", "mode-switcher", "listview" ];
 }
 

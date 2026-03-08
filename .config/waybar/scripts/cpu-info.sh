@@ -10,7 +10,7 @@ while IFS= read -r line; do
     cur[$name]="$line"
 done < <(grep '^cpu' /proc/stat)
 
-temp=$(sensors -j 2>/dev/null | jq -r '.["k10temp-pci-00c3"].Tctl.temp1_input // empty' | xargs printf "%.0f" 2>/dev/null || echo "?")
+temp=$(sensors -j 2>/dev/null | jq -r '[to_entries[] | select(.key | startswith("k10temp-")) | .value.Tctl.temp1_input // empty] | first' | xargs printf "%.0f" 2>/dev/null || echo "?")
 
 # Calculate delta if previous sample exists
 if [[ -f "$STAT_FILE" ]]; then

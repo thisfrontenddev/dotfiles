@@ -59,9 +59,9 @@
 	process = git-lfs filter-process
 	required = true
 
-# Conditional includes for work repositories
-# Any repo inside ~/work/ will use the work-specific config
-[includeIf "gitdir:~/work/goldbroker/"]
+# Conditional include for work repositories
+# Any repo inside ~/work/ uses work config (which chains per-company configs)
+[includeIf "gitdir:~/work/"]
 	path = ~/.config/git/config-work
 [gpg]
 	format = ssh

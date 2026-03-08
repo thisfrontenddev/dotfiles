@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Solaar
+Comment=Logitech device manager
+Exec=solaar --window=hide
+Terminal=false
+Type=Application
+Icon=solaar
+Categories=Utility;
+X-GNOME-Autostart-enabled=true

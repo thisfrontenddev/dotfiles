@@ -9,9 +9,9 @@ export SWAYSOCK
 TREE=$(swaymsg -t get_tree 2>/dev/null)
 
 show_window() {
-    title=$(echo "$TREE" | /usr/bin/python3 -c "
-import json, sys
-output = '$OUTPUT'
+    title=$(echo "$TREE" | _WB_OUTPUT="$OUTPUT" /usr/bin/python3 -c "
+import json, sys, os
+output = os.environ['_WB_OUTPUT']
 
 def find_focused(node):
     if node.get('focused'):
@@ -61,10 +61,10 @@ if [[ "$status" == "Playing" || "$status" == "Paused" ]]; then
 
     # Map player names to possible app_ids/wm_classes
     # e.g. playerctl reports "firefox" for Zen Browser, Spotify as "spotify", etc.
-    on_this_output=$(echo "$TREE" | /usr/bin/python3 -c "
-import json, sys
-output = '$OUTPUT'
-player = '$player_name'.lower()
+    on_this_output=$(echo "$TREE" | _WB_OUTPUT="$OUTPUT" _WB_PLAYER="$player_name" /usr/bin/python3 -c "
+import json, sys, os
+output = os.environ['_WB_OUTPUT']
+player = os.environ['_WB_PLAYER'].lower()
 
 # Map of player names to app_id patterns they could match
 player_map = {

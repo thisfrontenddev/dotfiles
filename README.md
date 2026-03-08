@@ -80,12 +80,12 @@ Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
 ```
 .config/
   zsh/                            # Shell (cross-platform)
-    .zshenv                       # Entry: XDG vars, sources env.zsh
+    .zshenv                       # Entry: XDG vars, startup timing
     .zshrc                        # Sources init.zsh, fastfetch, startup timing
+    .zprofile                     # Login-shell (sourced once)
     init.zsh                      # Loader: lib/, functions/, aliases/, completions/
-    env.zsh                       # Cargo env, secrets (untracked)
     lib/
-      path.zsh                    # OS-aware PATH (macOS vs Linux)
+      env.zsh                     # OS-aware PATH, cargo, secrets (merged path+env)
       history.zsh                 # History settings (50k, dedup, shared)
       completions.zsh             # Completion init + styling
       options.zsh                 # Shell options (auto_cd, glob_dots, etc.)
@@ -98,7 +98,7 @@ Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
       convert-images.zsh          # Image conversion aliases (jpg2avif, etc.)
     functions/
       convert-images              # Batch image conversion (autoloaded)
-      utils.zsh                   # mktouch helper
+      mktouch                     # Create file + parent dirs (autoloaded)
   git/
     config                        # Git config: SSH signing, aliases, histogram diff
     ignore                        # Global gitignore
@@ -115,7 +115,7 @@ Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
   rofi/                           # App launcher theme
   swaync/                         # Notification center
   pipewire/                       # PipeWire config (app renaming, virtual sinks)
-  logitech/                       # G915 TKL LED control (HID++ Python tool)
+  g915/                           # G915 TKL LED control (HID++ Python tool, udev, setup)
 
   # macOS-only
   aerospace/aerospace.toml        # Tiling WM

@@ -134,18 +134,6 @@
 		"tooltip": false,
 		"on-click": "rofi -show drun"
 	},
-	/* MUSIC */
-	"custom/music": {
-		"format": "{0}",
-		"return-type": "json",
-		"max-length": 40,
-		"escape": true,
-		"tooltip": true,
-		"exec": "~/.config/waybar/scripts/mediaplayer.py",
-		"on-click": "playerctl play-pause",
-		"on-scroll-up": "playerctl next",
-		"on-scroll-down": "playerctl previous"
-	},
 	/* NOTIFICATIONS */
 	"custom/notifications": {
 		"tooltip": false,

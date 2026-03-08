@@ -1,0 +1,6 @@
+# Shared work defaults (applied to all repos under ~/work/)
+# Add any work-wide overrides here
+
+# Per-company configs
+[includeIf "gitdir:~/work/goldbroker/"]
+	path = ~/.config/git/config-goldbroker

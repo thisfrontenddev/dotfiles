@@ -2,8 +2,8 @@
 # Triggers on hidraw creation for the G915 TKL HID++ interface
 ACTION=="add", SUBSYSTEM=="hidraw", \
   ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c545", \
-  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/logitech/g915-resume.sh post &'"
+  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/g915/g915-resume.sh post &'"
 
 ACTION=="add", SUBSYSTEM=="hidraw", \
   ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c343", \
-  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/logitech/g915-resume.sh post &'"
+  RUN+="/bin/bash -c 'sleep 5 && /home/void/.config/g915/g915-resume.sh post &'"

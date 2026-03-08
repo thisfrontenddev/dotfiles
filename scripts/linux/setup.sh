@@ -121,7 +121,47 @@ if [[ ! -f "$WALLPAPER_DIR/f43-night.png" ]]; then
   fi
 fi
 
-# ── 9. Rust toolchain ──
+# ── 9. Sysctl tuning ──
+step "Installing sysctl dev workstation tuning"
+SYSCTL_SRC="$HOME/.config/sysctl/99-dev-workstation.conf"
+SYSCTL_DST="/etc/sysctl.d/99-dev-workstation.conf"
+if [[ -L "$SYSCTL_DST" ]] && [[ "$(readlink -f "$SYSCTL_DST")" == "$SYSCTL_SRC" ]]; then
+  info "sysctl config already symlinked"
+else
+  sudo ln -sf "$SYSCTL_SRC" "$SYSCTL_DST"
+  sudo sysctl --system >/dev/null 2>&1
+  info "sysctl config symlinked and applied"
+fi
+
+# ── 10. Btrfs scrub timer ──
+step "Installing btrfs scrub timer"
+BTRFS_UNITS="$HOME/.config/systemd/system-units"
+if findmnt -t btrfs / >/dev/null 2>&1; then
+  sudo cp "$BTRFS_UNITS/btrfs-scrub.service" /etc/systemd/system/
+  sudo cp "$BTRFS_UNITS/btrfs-scrub.timer" /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now btrfs-scrub.timer
+  info "btrfs scrub timer installed and enabled (monthly)"
+else
+  info "Root is not btrfs — skipping"
+fi
+
+# ── 11. Flatpak auto-update timer ──
+step "Installing Flatpak auto-update timer"
+if command -v flatpak &>/dev/null; then
+  USER_UNITS="$HOME/.config/systemd/user-units"
+  USER_DIR="$HOME/.config/systemd/user"
+  mkdir -p "$USER_DIR"
+  ln -sf "$USER_UNITS/flatpak-update.service" "$USER_DIR/flatpak-update.service"
+  ln -sf "$USER_UNITS/flatpak-update.timer" "$USER_DIR/flatpak-update.timer"
+  systemctl --user daemon-reload
+  systemctl --user enable --now flatpak-update.timer
+  info "Flatpak auto-update timer symlinked and enabled (weekly)"
+else
+  info "Flatpak not installed — skipping"
+fi
+
+# ── 12. Rust toolchain ──
 step "Setting up Rust toolchain"
 if command -v rustup &>/dev/null; then
   if rustup show active-toolchain &>/dev/null; then
@@ -134,19 +174,19 @@ else
   info "rustup not found — install via home-manager first"
 fi
 
-# ── 10. Logitech G915 TKL lighting ──
+# ── 13. Logitech G915 TKL lighting ──
 step "Setting up Logitech G915 TKL lighting"
-bash "$HOME/.config/logitech/setup.sh"
+bash "$HOME/.config/g915/setup.sh"
 
-# ── 11. CYBRland theme (wallpapers, sway/waybar dependencies) ──
+# ── 14. CYBRland theme (wallpapers, sway/waybar dependencies) ──
 step "Installing CYBRland theme"
 bash "$SCRIPTS_DIR/install-cybrland.sh"
 
-# ── 12. System hardening ──
+# ── 15. System hardening ──
 step "Applying system hardening"
 bash "$SCRIPTS_DIR/harden.sh"
 
-# ── 13. Optional: Gaming setup ──
+# ── 16. Optional: Gaming setup ──
 if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   read -rp "Install gaming tools (Steam, gamemode, mangohud)? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then
@@ -155,7 +195,7 @@ if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   fi
 fi
 
-# ── 14. Optional: Arctis Nova Pro headset ──
+# ── 17. Optional: Arctis Nova Pro headset ──
 if [[ -f "$SCRIPTS_DIR/setup-arctis-nova-pro.sh" ]]; then
   read -rp "Set up SteelSeries Arctis Nova Pro headset? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then

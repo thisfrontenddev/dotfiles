@@ -48,5 +48,28 @@ else
   echo "    NVIDIA kernel params already set"
 fi
 
+# ── NVIDIA modprobe config ──
+echo "==> Installing NVIDIA modprobe config..."
+MODPROBE_SRC="$HOME/.config/nvidia/nvidia-modeset.conf"
+MODPROBE_DST="/etc/modprobe.d/nvidia-modeset.conf"
+if [[ -L "$MODPROBE_DST" ]] && [[ "$(readlink -f "$MODPROBE_DST")" == "$MODPROBE_SRC" ]]; then
+  echo "    modprobe config already symlinked"
+else
+  sudo ln -sf "$MODPROBE_SRC" "$MODPROBE_DST"
+  echo "    modprobe config symlinked"
+fi
+
+# ── NVIDIA udev seat preference ──
+echo "==> Installing NVIDIA udev seat rule..."
+UDEV_SRC="$HOME/.config/nvidia/61-prefer-nvidia.rules"
+UDEV_DST="/etc/udev/rules.d/61-prefer-nvidia.rules"
+if [[ -L "$UDEV_DST" ]] && [[ "$(readlink -f "$UDEV_DST")" == "$UDEV_SRC" ]]; then
+  echo "    udev seat rule already symlinked"
+else
+  sudo ln -sf "$UDEV_SRC" "$UDEV_DST"
+  sudo udevadm control --reload-rules
+  echo "    udev seat rule symlinked and reloaded"
+fi
+
 echo ""
 echo "=== Fedora driver installation complete! ==="

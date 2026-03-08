@@ -21,7 +21,7 @@ output DP-6 mode 2560x1440@280Hz adaptive_sync on pos 0 0 bg $HOME/.config/sway/
 output HDMI-A-2 mode 1920x1080@165Hz pos 2560 0 bg $HOME/.config/sway/wallpapers/cybrland/ikebukuro-2560x1440.png fill
 
 # ─── Workspace-to-monitor assignments ────────────────────────────────
-# Secondary monitor (HDMI-A-2): 1-6, W
+# Secondary monitor (HDMI-A-2): 1-6, W, M, S
 workspace 1 output HDMI-A-2
 workspace 2 output HDMI-A-2
 workspace 3 output HDMI-A-2
@@ -30,7 +30,7 @@ workspace 5 output HDMI-A-2
 workspace 6 output HDMI-A-2
 workspace W output HDMI-A-2
 
-# Primary monitor (DP-6): 7-10, C, T, M, N, P, S, F, L
+# Primary monitor (DP-6): 7-10, C, T, N, P, F, L, G, O
 workspace 7 output DP-6
 workspace 8 output DP-6
 workspace 9 output DP-6

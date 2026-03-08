@@ -1,0 +1,139 @@
+#!/usr/bin/python3
+
+# Licensed under the 0BSD
+# Simplified: only handles HID ChatMix dial reading + volume control
+# Virtual sinks (NovaGame, NovaChat, NovaMedia) are persistent PipeWire modules
+
+from signal import SIGINT, SIGTERM, signal
+from subprocess import Popen
+
+from hid import device
+from hid import enumerate as hidenumerate
+
+CMD_PACTL = "pactl"
+
+
+def set_sink_volume(sink: str, volume: int):
+    Popen([CMD_PACTL, "set-sink-volume", f"input.{sink}", f"{volume}%"])
+
+
+class NovaProWireless:
+    # USB IDs
+    VID = 0x1038
+    PID = 0x12E0
+
+    # bInterfaceNumber
+    INTERFACE = 0x4
+
+    # HID Message length
+    MSGLEN = 63
+
+    # Message read timeout
+    READ_TIMEOUT = 1000
+
+    # First byte controls data direction.
+    TX = 0x6  # To base station.
+    RX = 0x7  # From base station.
+
+    # Second Byte
+    OPT_SONAR_ICON = 0x8D
+    OPT_CHATMIX_ENABLE = 0x49
+    OPT_VOLUME = 0x25
+    OPT_CHATMIX = 0x45
+    OPT_EQ = 0x31
+    OPT_EQ_PRESET = 0x2E
+
+    # PipeWire sink names (persistent, created by PipeWire config)
+    PW_GAME_SINK = "NovaGame"
+    PW_CHAT_SINK = "NovaChat"
+
+    CHATMIX_CONTROLS_ENABLED = False
+    SONAR_ICON_ENABLED = False
+    CLOSE = False
+
+    ERR_NOTFOUND = "Device not found"
+
+    def __init__(self):
+        devpath = None
+        for hiddev in hidenumerate(self.VID, self.PID):
+            if hiddev["interface_number"] == self.INTERFACE:
+                devpath = hiddev["path"]
+                break
+        if not devpath:
+            raise DeviceNotFoundException
+
+        self.dev = device()
+        self.dev.open_path(devpath)
+        self.dev.set_nonblocking(True)
+
+    def set_chatmix_controls(self, state: bool):
+        assert self.dev, self.ERR_NOTFOUND
+        self.dev.write(
+            self._create_msgdata((self.TX, self.OPT_CHATMIX_ENABLE, int(state))),
+        )
+        self.CHATMIX_CONTROLS_ENABLED = state
+
+    def set_sonar_icon(self, state: bool):
+        assert self.dev, self.ERR_NOTFOUND
+        self.dev.write(
+            self._create_msgdata((self.TX, self.OPT_SONAR_ICON, int(state))),
+        )
+        self.SONAR_ICON_ENABLED = state
+
+    def set_volume(self, attenuation: int):
+        assert self.dev, self.ERR_NOTFOUND
+        self.dev.write(
+            self._create_msgdata((self.TX, self.OPT_VOLUME, attenuation)),
+        )
+
+    def set_eq_preset(self, preset: int):
+        assert self.dev, self.ERR_NOTFOUND
+        self.dev.write(
+            self._create_msgdata((self.TX, self.OPT_EQ_PRESET, preset)),
+        )
+
+    def chatmix_loop(self):
+        """Read ChatMix dial and adjust NovaGame/NovaChat volumes."""
+        assert self.dev, self.ERR_NOTFOUND
+        while not self.CLOSE:
+            try:
+                msg = self.dev.read(self.MSGLEN, self.READ_TIMEOUT)
+                if not msg or msg[1] is not self.OPT_CHATMIX:
+                    continue
+
+                gamevol = msg[2]
+                chatvol = msg[3]
+
+                set_sink_volume(self.PW_GAME_SINK, gamevol)
+                set_sink_volume(self.PW_CHAT_SINK, chatvol)
+            except OSError:
+                print("Device was probably disconnected, exiting.")
+                self.CLOSE = True
+
+    def close(self, signum, frame):
+        self.CLOSE = True
+        if self.CHATMIX_CONTROLS_ENABLED:
+            self.set_chatmix_controls(False)
+        if self.SONAR_ICON_ENABLED:
+            self.set_sonar_icon(False)
+
+    def _create_msgdata(self, data: tuple[int, ...]) -> bytes:
+        return bytes(data).ljust(self.MSGLEN, b"\0")
+
+
+class DeviceNotFoundException(Exception):
+    pass
+
+
+if __name__ == "__main__":
+    try:
+        nova = NovaProWireless()
+        nova.set_sonar_icon(state=True)
+        nova.set_chatmix_controls(state=True)
+
+        signal(SIGINT, nova.close)
+        signal(SIGTERM, nova.close)
+
+        nova.chatmix_loop()
+    except DeviceNotFoundException:
+        print("Device not found, exiting.")

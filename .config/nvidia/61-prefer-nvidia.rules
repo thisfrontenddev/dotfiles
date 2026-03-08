@@ -1,0 +1,3 @@
+# Tag the NVIDIA GPU's DRM card node as seat master
+# Auto-detects the correct card regardless of numbering
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="nvidia", TAG+="seat", TAG+="master-of-seat"

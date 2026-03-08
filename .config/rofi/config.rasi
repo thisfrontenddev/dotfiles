@@ -7,7 +7,7 @@
 
 configuration {
   // General Settings
-  modi: "drun,run,filebrowser";
+  modi: "drun";
   case-sensitive: false;
   cycle: false;
   filter: "";

@@ -8,14 +8,14 @@ export SWAYSOCK
 status=$(playerctl status 2>/dev/null)
 if [[ "$status" == "Playing" || "$status" == "Paused" ]]; then
     player_name=$(playerctl metadata --format '{{playerName}}' 2>/dev/null)
-    on_this=$(swaymsg -t get_tree 2>/dev/null | /usr/bin/python3 -c "
-import json, sys
-output = '$OUTPUT'
-player = '$player_name'.lower()
+    on_this=$(swaymsg -t get_tree 2>/dev/null | _WB_OUTPUT="$OUTPUT" _WB_PLAYER="$player_name" /usr/bin/python3 -c "
+import json, sys, os
+output = os.environ['_WB_OUTPUT']
+player = os.environ['_WB_PLAYER'].lower()
 player_map = {
     'firefox': ['firefox', 'zen', 'librewolf', 'waterfox', 'floorp'],
     'chromium': ['chromium', 'chrome', 'brave', 'vivaldi', 'edge'],
-    'spotify': ['spotify'], 'vlc': ['vlc'], 'mpv': ['mpv'],
+    'spotify': ['spotify'], 'vlc': ['vlc'], 'mpv': ['mpv'], 'cider': ['cider'],
 }
 patterns = player_map.get(player, [player])
 def find(node, cur=None):

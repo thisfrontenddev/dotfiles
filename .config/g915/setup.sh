@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Logitech device setup for Fedora (G915 TKL + G PRO X Superlight)
+# G915 TKL + Logitech device setup for Fedora
 # Installs: Solaar, Piper
-# Configures: udev rule for G915 TKL lighting persistence
+# Configures: udev rule, per-key lighting, onboard profiles, autostart
 #
 # Safe to run multiple times — all operations are idempotent.
 #
@@ -69,35 +69,37 @@ if [[ -f "$OLD_SERVICE" ]]; then
 fi
 
 # --- Solaar autostart ---
-SOLAAR_DESKTOP="$HOME/.config/autostart/solaar.desktop"
-if [[ ! -f "$SOLAAR_DESKTOP" ]]; then
-    mkdir -p "$(dirname "$SOLAAR_DESKTOP")"
-    cat > "$SOLAAR_DESKTOP" <<'EOF'
-[Desktop Entry]
-Name=Solaar
-Comment=Logitech device manager
-Exec=solaar --window=hide
-Terminal=false
-Type=Application
-Icon=solaar
-Categories=Utility;
-X-GNOME-Autostart-enabled=true
-EOF
-    info "Added Solaar to autostart."
-else
+SOLAAR_SRC="$SCRIPT_DIR/solaar.desktop"
+SOLAAR_DST="$HOME/.config/autostart/solaar.desktop"
+mkdir -p "$(dirname "$SOLAAR_DST")"
+if [[ -L "$SOLAAR_DST" ]] && [[ "$(readlink -f "$SOLAAR_DST")" == "$SOLAAR_SRC" ]]; then
     skip "Solaar autostart"
+else
+    ln -sf "$SOLAAR_SRC" "$SOLAAR_DST"
+    info "Symlinked Solaar autostart."
+fi
+
+# --- g915-led symlink in PATH ---
+G915_LED_SRC="$SCRIPT_DIR/bin/g915-led"
+G915_LED_DST="$HOME/.local/bin/g915-led"
+mkdir -p "$(dirname "$G915_LED_DST")"
+if [[ -L "$G915_LED_DST" ]] && [[ "$(readlink -f "$G915_LED_DST")" == "$G915_LED_SRC" ]]; then
+    skip "g915-led symlink"
+else
+    ln -sf "$G915_LED_SRC" "$G915_LED_DST"
+    info "Symlinked g915-led to ~/.local/bin/"
 fi
 
 # --- G915 TKL udev rule for lighting persistence ---
 UDEV_RULE="/etc/udev/rules.d/99-g915-led.rules"
-UDEV_SOURCE="$SCRIPT_DIR/99-g915-led.rules"
+UDEV_SOURCE="$SCRIPT_DIR/udev/99-g915-led.rules"
 
 if [[ ! -f "$UDEV_SOURCE" ]]; then
     error "Missing $UDEV_SOURCE"
     exit 1
 fi
 
-if [[ -L "$UDEV_RULE" ]] && [[ "$(readlink "$UDEV_RULE")" == "$UDEV_SOURCE" ]]; then
+if [[ -L "$UDEV_RULE" ]] && [[ "$(readlink -f "$UDEV_RULE")" == "$UDEV_SOURCE" ]]; then
     skip "G915 udev rule"
 else
     sudo ln -sf "$UDEV_SOURCE" "$UDEV_RULE"
@@ -107,7 +109,7 @@ fi
 
 # --- G915 TKL onboard profile (flash) ---
 info "Writing onboard profile to G915 TKL flash (all 3 slots)..."
-python3 "$SCRIPT_DIR/g915-profile-write.py" 2>/dev/null && \
+python3 "$SCRIPT_DIR/bin/g915-profile-write.py" 2>/dev/null && \
     info "Onboard profiles written (static blue + yellow logo)." || \
     warn "Could not write onboard profiles (keyboard may not be connected)."
 
@@ -122,7 +124,7 @@ echo ""
 info "Setup complete!"
 echo ""
 echo "  g915-led     - Per-key RGB control for G915 TKL"
-echo "                 Run: ~/.config/logitech/g915-led --help"
+echo "                 Run: g915-led --help"
 echo ""
 echo "  Lighting     - Blue keys, yellow modifiers/media/logo"
 echo "                 Onboard profile: static blue+yellow (survives power loss)"
