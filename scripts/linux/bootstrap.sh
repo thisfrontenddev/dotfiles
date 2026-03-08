@@ -82,6 +82,7 @@ bash "$SHARED_DIR/rust.sh"
 # ── Step 6: Create required directories ──
 mkdir -p "$HOME/.local/state/zsh"
 mkdir -p "$HOME/.cache/zsh"
+mkdir -p "$HOME/Pictures/Screenshots"
 
 # ── Step 7: Install fonts ──
 echo "==> Installing Nerd Fonts..."
