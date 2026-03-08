@@ -76,6 +76,19 @@ echo "==> Setting up zsh symlinks..."
 ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
 ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
 
+SECRETS_FILE="$HOME/.config/zsh/secrets.zsh"
+if [[ ! -f "$SECRETS_FILE" ]]; then
+  cat > "$SECRETS_FILE" <<'SECRETS'
+# Zsh secrets — API keys, tokens, etc.
+# This file is sourced by env.zsh and is NOT tracked in dotfiles.
+#
+# Example:
+#   export OPENAI_API_KEY="sk-..."
+#   export ANTHROPIC_API_KEY="sk-ant-..."
+SECRETS
+  echo "  Created $SECRETS_FILE (add your secrets here)"
+fi
+
 # ── Step 5: Rust ──
 bash "$SHARED_DIR/rust.sh"
 
