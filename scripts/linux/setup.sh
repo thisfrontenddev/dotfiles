@@ -138,11 +138,15 @@ fi
 step "Setting up Logitech G915 TKL lighting"
 bash "$HOME/.config/logitech/setup.sh"
 
-# ── 11. System hardening ──
+# ── 11. CYBRland theme (wallpapers, sway/waybar dependencies) ──
+step "Installing CYBRland theme"
+bash "$SCRIPTS_DIR/install-cybrland.sh"
+
+# ── 12. System hardening ──
 step "Applying system hardening"
 bash "$SCRIPTS_DIR/harden.sh"
 
-# ── 12. Optional: Gaming setup ──
+# ── 13. Optional: Gaming setup ──
 if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   read -rp "Install gaming tools (Steam, gamemode, mangohud)? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then
@@ -151,21 +155,12 @@ if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   fi
 fi
 
-# ── 13. Optional: Arctis Nova Pro headset ──
+# ── 14. Optional: Arctis Nova Pro headset ──
 if [[ -f "$SCRIPTS_DIR/setup-arctis-nova-pro.sh" ]]; then
   read -rp "Set up SteelSeries Arctis Nova Pro headset? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then
     step "Setting up Arctis Nova Pro"
     bash "$SCRIPTS_DIR/setup-arctis-nova-pro.sh"
-  fi
-fi
-
-# ── 14. Optional: CYBRland theme ──
-if [[ -f "$SCRIPTS_DIR/install-cybrland.sh" ]]; then
-  read -rp "Install CYBRland theme (wallpapers, configs)? [y/N] " ans
-  if [[ "$ans" =~ ^[Yy]$ ]]; then
-    step "Installing CYBRland theme"
-    bash "$SCRIPTS_DIR/install-cybrland.sh"
   fi
 fi
 
