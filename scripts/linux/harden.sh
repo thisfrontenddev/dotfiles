@@ -73,6 +73,31 @@ while IFS= read -r conn; do
   fi
 done < <(nmcli -t -f NAME connection show --active 2>/dev/null)
 
+# Install dispatcher script so future connections also get Cloudflare DNS
+NM_DISPATCH="/etc/NetworkManager/dispatcher.d/99-cloudflare-dns"
+if [[ -f "$NM_DISPATCH" ]]; then
+  info "DNS dispatcher already installed"
+else
+  sudo tee "$NM_DISPATCH" > /dev/null << 'DISPATCH'
+#!/usr/bin/env bash
+# Enforce Cloudflare DNS on every new WiFi/ethernet connection
+# Skip VPN and tunnel interfaces — they manage their own DNS
+[[ "$2" != "up" ]] && exit 0
+CONN="$CONNECTION_UUID"
+[[ -z "$CONN" ]] && exit 0
+CONN_TYPE=$(nmcli -g connection.type connection show uuid "$CONN" 2>/dev/null)
+case "$CONN_TYPE" in
+  vpn|wireguard|tun|*tunnel*) exit 0 ;;
+esac
+CURRENT_DNS=$(nmcli -g ipv4.dns connection show uuid "$CONN" 2>/dev/null)
+if [[ "$CURRENT_DNS" != "1.1.1.1,1.0.0.1" ]]; then
+  nmcli connection modify uuid "$CONN" ipv4.dns "1.1.1.1 1.0.0.1" ipv4.ignore-auto-dns yes
+fi
+DISPATCH
+  sudo chmod 755 "$NM_DISPATCH"
+  info "DNS dispatcher installed for future connections"
+fi
+
 # ── 4. NVIDIA persistence mode ──
 step "Enabling NVIDIA persistence mode"
 if systemctl is-enabled nvidia-persistenced &>/dev/null; then
@@ -202,13 +227,30 @@ fi
 sudo systemctl enable --now dnf5-automatic.timer 2>/dev/null || true
 info "dnf5-automatic enabled (security updates only)"
 
-# ── 13. Git commit signing (SSH key) ──
+# ── 13. SSH key + Git commit signing ──
+step "Ensuring SSH key exists"
+SSH_KEY="$HOME/.ssh/id_ed25519"
+if [[ -f "$SSH_KEY" ]]; then
+  info "SSH key already exists at $SSH_KEY"
+else
+  mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+  EMAIL=$(git config --global user.email 2>/dev/null || echo "")
+  if [[ -z "$EMAIL" ]]; then
+    read -rp "    Enter email for SSH key: " EMAIL
+  fi
+  ssh-keygen -t ed25519 -C "$EMAIL" -f "$SSH_KEY" -N ""
+  info "SSH key generated at $SSH_KEY"
+  eval "$(ssh-agent -s)" >/dev/null 2>&1
+  ssh-add "$SSH_KEY" 2>/dev/null || true
+  info "Key added to ssh-agent"
+fi
+
 step "Configuring git commit signing"
 if [[ "$(git config --global gpg.format 2>/dev/null)" == "ssh" ]]; then
   info "Git SSH signing already configured"
 else
   git config --global gpg.format ssh
-  git config --global user.signingkey ~/.ssh/id_ed25519.pub
+  git config --global user.signingkey "${SSH_KEY}.pub"
   git config --global commit.gpgsign true
   info "Git commits will be signed with SSH key"
 fi

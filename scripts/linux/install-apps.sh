@@ -41,6 +41,7 @@ run_step "System packages" bash -c '
     ImageMagick ffmpeg \
     pipx snapper \
     fontconfig \
+    procps-ng \
     pnpm
 '
 

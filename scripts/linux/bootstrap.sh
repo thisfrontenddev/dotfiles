@@ -95,6 +95,7 @@ bash "$SHARED_DIR/rust.sh"
 # ── Step 6: Create required directories ──
 mkdir -p "$HOME/.local/state/zsh"
 mkdir -p "$HOME/.cache/zsh"
+mkdir -p "$HOME/.config/zsh/completions"
 mkdir -p "$HOME/Pictures/Screenshots"
 
 # ── Step 7: Install fonts ──
@@ -125,6 +126,11 @@ fc-cache -f 2>/dev/null || true
 if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
   echo "==> Installing tmux plugin manager..."
   git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+fi
+# Auto-install tmux plugins (doesn't require a running tmux session)
+if [[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]]; then
+  echo "==> Installing tmux plugins..."
+  "$HOME/.tmux/plugins/tpm/bin/install_plugins" || true
 fi
 
 # ── Step 9: Set default shell ──
