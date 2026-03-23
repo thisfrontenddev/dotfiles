@@ -2,44 +2,32 @@
 # setup-gaming.sh — Install Steam + gaming compatibility stack on Fedora
 # Run: bash ~/scripts/setup-gaming.sh
 set -euo pipefail
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
 if [ "$(id -u)" -eq 0 ]; then
     echo "Error: Do not run with sudo. It will call sudo only when needed."
     exit 1
 fi
 
-echo "=== Gaming Setup for Fedora ==="
+echo "=== Gaming Setup ($DISTRO) ==="
 
 # ─── 1. RPM Fusion ──────────────────────────────────────────────
-echo "[1/6] Checking RPM Fusion ..."
-if rpm -q rpmfusion-free-release rpmfusion-nonfree-release &>/dev/null; then
-    echo "    Already enabled."
-else
-    echo "    Enabling RPM Fusion ..."
-    sudo dnf install -y \
-        "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
-        "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
-fi
+echo "[1/6] Setting up repos ..."
+repo_enable rpmfusion
 
 # ─── 2. Steam + core gaming tools ───────────────────────────────
 echo "[2/6] Installing Steam, gamemode, mangohud, gamescope ..."
-PKGS=(
-    steam
-    gamemode
-    mangohud
-    gamescope
-)
-
+PKGS=(steam gamemode mangohud gamescope)
 MISSING=()
 for pkg in "${PKGS[@]}"; do
-    if ! rpm -q "$pkg" &>/dev/null; then
+    if ! pkg_check "$pkg"; then
         MISSING+=("$pkg")
     fi
 done
-
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo "    Installing: ${MISSING[*]}"
-    sudo dnf install -y "${MISSING[@]}"
+    pkg_install "${MISSING[@]}"
 else
     echo "    All already installed."
 fi
@@ -59,17 +47,15 @@ LIB_PKGS=(
     freetype.i686
     fontconfig.i686
 )
-
 MISSING_LIBS=()
 for pkg in "${LIB_PKGS[@]}"; do
-    if ! rpm -q "$pkg" &>/dev/null; then
+    if ! pkg_check "$pkg"; then
         MISSING_LIBS+=("$pkg")
     fi
 done
-
 if [ ${#MISSING_LIBS[@]} -gt 0 ]; then
     echo "    Installing: ${MISSING_LIBS[*]}"
-    sudo dnf install -y "${MISSING_LIBS[@]}"
+    pkg_install "${MISSING_LIBS[@]}"
 else
     echo "    All already installed."
 fi
@@ -82,17 +68,15 @@ CODEC_PKGS=(
     gstreamer1-plugins-ugly
     gstreamer1-plugin-libav
 )
-
 MISSING_CODECS=()
 for pkg in "${CODEC_PKGS[@]}"; do
-    if ! rpm -q "$pkg" &>/dev/null; then
+    if ! pkg_check "$pkg"; then
         MISSING_CODECS+=("$pkg")
     fi
 done
-
 if [ ${#MISSING_CODECS[@]} -gt 0 ]; then
     echo "    Installing: ${MISSING_CODECS[*]}"
-    sudo dnf install -y "${MISSING_CODECS[@]}"
+    pkg_install "${MISSING_CODECS[@]}"
 else
     echo "    All already installed."
 fi
