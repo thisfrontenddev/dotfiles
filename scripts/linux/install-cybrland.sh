@@ -2,6 +2,8 @@
 # install-cybrland.sh — Reproducible setup for cybrland theme on Fedora + Sway
 # Run: bash ~/scripts/linux/install-cybrland.sh
 set -euo pipefail
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
 # Prevent running as root (sudo expands $HOME to /root)
 if [ "$(id -u)" -eq 0 ]; then
@@ -65,17 +67,16 @@ DEPS=(
     lm_sensors
 )
 
-# Check which are missing
 MISSING=()
 for dep in "${DEPS[@]}"; do
-    if ! rpm -q "$dep" &>/dev/null; then
+    if ! pkg_check "$dep"; then
         MISSING+=("$dep")
     fi
 done
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo "    Installing: ${MISSING[*]}"
-    sudo dnf install -y "${MISSING[@]}"
+    pkg_install "${MISSING[@]}"
 else
     echo "    All dependencies already installed."
 fi
