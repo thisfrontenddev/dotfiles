@@ -3,55 +3,13 @@ set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 SHARED_DIR="$(cd "$SCRIPTS_DIR/../shared" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
 echo "=== Linux Bootstrap ==="
 
-# ── Detect distro ──
-if [[ -f /etc/os-release ]]; then
-  . /etc/os-release
-  DISTRO="$ID"
-else
-  echo "Cannot detect distro. Exiting."
-  exit 1
-fi
-
 # ── Step 1: Install system packages ──
 echo "==> Installing system packages..."
-case "$DISTRO" in
-  fedora)
-    # Base packages only — full Fedora installs handled by linux/setup.sh
-    sudo dnf install -y --skip-unavailable \
-      zsh git gcc gcc-c++ cmake fontconfig curl
-    ;;
-  ubuntu|debian|pop)
-    sudo apt update
-    sudo apt install -y \
-      zsh git gcc g++ cmake ninja-build clang lld \
-      golang-go default-jdk \
-      podman \
-      neovim tmux fzf \
-      htop btop ripgrep fd-find bat jq \
-      strace ltrace \
-      fastfetch imagemagick ffmpeg \
-      pipx snapper \
-      fontconfig
-    ;;
-  arch|endeavouros|manjaro)
-    sudo pacman -Syu --noconfirm --needed \
-      zsh git gcc cmake ninja clang lld \
-      go jdk-openjdk \
-      podman podman-compose \
-      neovim tmux fzf \
-      htop btop ripgrep fd bat jq yq \
-      strace ltrace hyperfine tokei \
-      fastfetch imagemagick ffmpeg \
-      pipx snapper \
-      fontconfig
-    ;;
-  *)
-    echo "Unsupported distro: $DISTRO — install packages manually."
-    ;;
-esac
+pkg_install zsh git gcc gcc-c++ cmake fontconfig curl
 
 # ── Step 2: Nix + Home Manager (declarative package management) ──
 echo "==> Setting up Nix..."
@@ -140,9 +98,9 @@ if [[ -n "$ZSH_PATH" && "$SHELL" != "$ZSH_PATH" ]]; then
   chsh -s "$ZSH_PATH"
 fi
 
-# ── Step 10: Fedora-specific setup ──
-if [[ "$DISTRO" == "fedora" ]]; then
-  echo "==> Running Fedora setup..."
+# ── Step 10: Distro-specific setup ──
+if [[ "$DISTRO_FAMILY" == "fedora" || "$DISTRO_FAMILY" == "arch" ]]; then
+  echo "==> Running $DISTRO_FAMILY setup..."
   bash "$SCRIPTS_DIR/setup.sh"
 fi
 
