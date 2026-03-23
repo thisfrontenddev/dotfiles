@@ -133,7 +133,31 @@ else
   info "sysctl config symlinked and applied"
 fi
 
-# ── 10. Btrfs scrub timer ──
+# ── 10. DNS configuration (Cloudflare DoT + NM dispatcher) ──
+step "Deploying DNS configuration"
+# systemd-resolved: Cloudflare DNS-over-TLS
+RESOLVED_SRC="$HOME/.config/resolved/dns-over-tls.conf"
+RESOLVED_DST="/etc/systemd/resolved.conf.d/dns-over-tls.conf"
+if [[ -f "$RESOLVED_SRC" ]]; then
+  sudo mkdir -p /etc/systemd/resolved.conf.d
+  sudo cp "$RESOLVED_SRC" "$RESOLVED_DST"
+  sudo systemctl restart systemd-resolved
+  info "DNS-over-TLS config deployed and resolved restarted"
+else
+  info "WARNING: $RESOLVED_SRC not found — skipping"
+fi
+# NetworkManager dispatcher: enforce Cloudflare on non-VPN connections
+NM_SRC="$HOME/.config/networkmanager/99-cloudflare-dns"
+NM_DST="/etc/NetworkManager/dispatcher.d/99-cloudflare-dns"
+if [[ -f "$NM_SRC" ]]; then
+  sudo cp "$NM_SRC" "$NM_DST"
+  sudo chmod +x "$NM_DST"
+  info "NM Cloudflare DNS dispatcher deployed (skips VPN connections)"
+else
+  info "WARNING: $NM_SRC not found — skipping"
+fi
+
+# ── 11. Btrfs scrub timer ──
 step "Installing btrfs scrub timer"
 BTRFS_UNITS="$HOME/.config/systemd/system-units"
 if findmnt -t btrfs / >/dev/null 2>&1; then

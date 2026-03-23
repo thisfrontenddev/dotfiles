@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Enforce Cloudflare DNS on every new WiFi/ethernet connection
+# Skip VPN and tunnel interfaces — they manage their own DNS
+[[ "$2" != "up" ]] && exit 0
+CONN="$CONNECTION_UUID"
+[[ -z "$CONN" ]] && exit 0
+
+# Skip if ProtonVPN (or any VPN) is active
+nmcli -t -f TYPE connection show --active 2>/dev/null | grep -qE "^(vpn|wireguard|tun)" && exit 0
+ip link show proton0 &>/dev/null && exit 0
+
+CONN_TYPE=$(nmcli -g connection.type connection show uuid "$CONN" 2>/dev/null)
+case "$CONN_TYPE" in
+  vpn|wireguard|tun|*tunnel*) exit 0 ;;
+esac
+CURRENT_DNS=$(nmcli -g ipv4.dns connection show uuid "$CONN" 2>/dev/null)
+if [[ "$CURRENT_DNS" != "1.1.1.1,1.0.0.1" ]]; then
+  nmcli connection modify uuid "$CONN" ipv4.dns "1.1.1.1 1.0.0.1" ipv4.ignore-auto-dns yes
+fi
