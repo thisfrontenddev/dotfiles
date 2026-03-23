@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-step() { echo -e "\n${GREEN}[✓] $1${NC}"; }
-info() { echo -e "${YELLOW}    → $1${NC}"; }
-
-echo "=== Fedora System Hardening ==="
+echo "=== System Hardening ($DISTRO) ==="
 
 # ── 1. Set hostname ──
 step "Setting hostname"
@@ -99,21 +94,25 @@ DISPATCH
 fi
 
 # ── 4. NVIDIA persistence mode ──
-step "Enabling NVIDIA persistence mode"
-if systemctl is-enabled nvidia-persistenced &>/dev/null; then
-  info "nvidia-persistenced already enabled"
-else
-  sudo systemctl enable --now nvidia-persistenced
-  info "nvidia-persistenced enabled"
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  step "Enabling NVIDIA persistence mode"
+  if systemctl is-enabled nvidia-persistenced &>/dev/null; then
+    info "nvidia-persistenced already enabled"
+  else
+    sudo systemctl enable --now nvidia-persistenced
+    info "nvidia-persistenced enabled"
+  fi
 fi
 
 # ── 5. NVIDIA fbdev in kernel cmdline ──
-step "Ensuring nvidia-drm.fbdev=1 in kernel cmdline"
-if grep -q "nvidia-drm.fbdev=1" /proc/cmdline; then
-  info "nvidia-drm.fbdev=1 already in cmdline"
-else
-  sudo grubby --update-kernel=ALL --args="nvidia-drm.fbdev=1"
-  info "nvidia-drm.fbdev=1 added (takes effect on next boot)"
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  step "Ensuring nvidia-drm.fbdev=1 in kernel cmdline"
+  if grep -q "nvidia-drm.fbdev=1" /proc/cmdline; then
+    info "nvidia-drm.fbdev=1 already in cmdline"
+  else
+    sudo grubby --update-kernel=ALL --args="nvidia-drm.fbdev=1"
+    info "nvidia-drm.fbdev=1 added (takes effect on next boot)"
+  fi
 fi
 
 # ── 6. Disable CUPS (no printer needed) ──
@@ -214,18 +213,23 @@ fi
 
 # ── 12. Automatic security updates ──
 step "Enabling automatic security updates"
-if ! rpm -q dnf5-plugin-automatic &>/dev/null; then
-  sudo dnf install -y dnf5-plugin-automatic
-fi
-if [[ ! -f /etc/dnf/automatic.conf ]] || ! grep -q "upgrade_type = security" /etc/dnf/automatic.conf; then
-  sudo tee /etc/dnf/automatic.conf > /dev/null << 'AUTOEOF'
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  if ! pkg_check dnf5-plugin-automatic; then
+    pkg_install dnf5-plugin-automatic
+  fi
+  if [[ ! -f /etc/dnf/automatic.conf ]] || ! grep -q "upgrade_type = security" /etc/dnf/automatic.conf; then
+    sudo tee /etc/dnf/automatic.conf > /dev/null << 'AUTOEOF'
 [commands]
 apply_updates = yes
 upgrade_type = security
 AUTOEOF
+  fi
+  sudo systemctl enable --now dnf5-automatic.timer 2>/dev/null || true
+  info "dnf5-automatic enabled (security updates only)"
+else
+  suggest_pkg "pacman-contrib" "paccache for cleaning old package cache"
+  info "Consider setting up unattended upgrades for Arch (e.g., a pacman cron or paru --devel)"
 fi
-sudo systemctl enable --now dnf5-automatic.timer 2>/dev/null || true
-info "dnf5-automatic enabled (security updates only)"
 
 # ── 13. SSH key + Git commit signing ──
 step "Ensuring SSH key exists"
@@ -314,14 +318,15 @@ fi
 
 # ── 15. fail2ban (SSH brute-force protection) ──
 step "Configuring fail2ban"
-if ! rpm -q fail2ban &>/dev/null; then
-  sudo dnf install -y fail2ban
-fi
-JAIL_LOCAL="/etc/fail2ban/jail.local"
-if [[ -f "$JAIL_LOCAL" ]]; then
-  info "fail2ban jail.local already configured"
-else
-  sudo tee "$JAIL_LOCAL" > /dev/null << 'EOF'
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  if ! pkg_check fail2ban; then
+    pkg_install fail2ban
+  fi
+  JAIL_LOCAL="/etc/fail2ban/jail.local"
+  if [[ -f "$JAIL_LOCAL" ]]; then
+    info "fail2ban jail.local already configured"
+  else
+    sudo tee "$JAIL_LOCAL" > /dev/null << 'EOF'
 [DEFAULT]
 bantime = 1h
 findtime = 10m
@@ -330,26 +335,29 @@ maxretry = 5
 [sshd]
 enabled = true
 EOF
-  info "fail2ban jail.local created (5 attempts / 10min → 1h ban)"
-fi
-sudo systemctl enable fail2ban
-# Only start if sshd is active — otherwise it just sits ready
-if systemctl is-active sshd &>/dev/null; then
-  sudo systemctl start fail2ban
-  info "fail2ban started (sshd is running)"
+    info "fail2ban jail.local created (5 attempts / 10min → 1h ban)"
+  fi
+  sudo systemctl enable fail2ban
+  if systemctl is-active sshd &>/dev/null; then
+    sudo systemctl start fail2ban
+    info "fail2ban started (sshd is running)"
+  else
+    info "fail2ban enabled but not started (sshd is inactive)"
+  fi
 else
-  info "fail2ban enabled but not started (sshd is inactive)"
+  suggest_pkg "fail2ban" "SSH brute-force protection (5 attempts / 10min = 1h ban)"
 fi
 
 # ── 16. Disable fingerprint auth (no reader on desktop) ──
-step "Disabling fingerprint PAM"
-if authselect current 2>/dev/null | grep -q "with-fingerprint"; then
-  sudo authselect disable-feature with-fingerprint
-  info "Fingerprint auth disabled"
-else
-  info "Fingerprint auth already disabled"
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  step "Disabling fingerprint PAM"
+  if authselect current 2>/dev/null | grep -q "with-fingerprint"; then
+    sudo authselect disable-feature with-fingerprint
+    info "Fingerprint auth disabled"
+  else
+    info "Fingerprint auth already disabled"
+  fi
 fi
 
-
 echo ""
-echo "=== Fedora hardening complete! ==="
+echo "=== System hardening complete! ($DISTRO) ==="
