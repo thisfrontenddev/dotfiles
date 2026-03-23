@@ -2,6 +2,7 @@
 set -uo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 FAILED=()
 
 run_step() {
@@ -12,26 +13,29 @@ run_step() {
   fi
 }
 
-echo "=== Fedora App & Package Installation ==="
+echo "=== App & Package Installation ($DISTRO) ==="
 
 # ── DNF performance tuning ──
-if ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
-  echo "==> Tuning DNF config..."
-  echo 'max_parallel_downloads=10' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
-fi
-if ! grep -q 'installonly_limit' /etc/dnf/dnf.conf; then
-  echo 'installonly_limit=2' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  if ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
+    echo "==> Tuning DNF config..."
+    echo 'max_parallel_downloads=10' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+  fi
+  if ! grep -q 'installonly_limit' /etc/dnf/dnf.conf; then
+    echo 'installonly_limit=2' | sudo tee -a /etc/dnf/dnf.conf >/dev/null
+  fi
 fi
 
 # ── Drivers (NVIDIA, RPM Fusion) ──
-run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers.sh"
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  run_step "Drivers" bash "$SCRIPTS_DIR/install-drivers.sh"
+fi
 
-# ── System packages (dnf) ──
-run_step "System packages" bash -c '
+# ── System packages ──
+run_step "System packages" env SCRIPTS_DIR="$SCRIPTS_DIR" bash -c '
+  source "$SCRIPTS_DIR/lib.sh"
   echo "==> Installing system packages..."
-  # CLI tools managed by Nix/home-manager: tmux, fzf, bat, ripgrep, btop,
-  # fastfetch, gh, cloc, tldr, starship, lazygit, eza, commitizen, watchman, fnm, rustup
-  sudo dnf install -y --skip-unavailable \
+  pkg_install \
     zsh git gcc gcc-c++ cmake ninja-build clang lld \
     golang java-latest-openjdk-devel \
     podman podman-compose \
@@ -45,42 +49,49 @@ run_step "System packages" bash -c '
     pnpm
 '
 
-# ── Sway ecosystem (dnf) ──
-run_step "Sway ecosystem" bash -c '
+# ── Sway ecosystem ──
+run_step "Sway ecosystem" env SCRIPTS_DIR="$SCRIPTS_DIR" bash -c '
+  source "$SCRIPTS_DIR/lib.sh"
   echo "==> Installing Sway ecosystem..."
-  sudo dnf install -y --skip-unavailable \
+  pkg_install \
     swayfx waybar rofi SwayNotificationCenter swaybg swaylock swayidle \
     grim slurp satty wl-clipboard sway-systemd \
     playerctl python3-gobject lm_sensors
 '
 
-# ── GNOME extras (dnf) ──
-run_step "GNOME extras" bash -c '
-  echo "==> Installing GNOME extras..."
-  sudo dnf install -y --skip-unavailable \
-    gnome-tweaks gnome-extensions-app \
-    gnome-shell-extension-appindicator \
-    gnome-shell-extension-blur-my-shell \
-    gnome-shell-extension-forge
-'
+# ── GNOME extras (Fedora only) ──
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  run_step "GNOME extras" bash -c '
+    echo "==> Installing GNOME extras..."
+    sudo dnf install -y --skip-unavailable \
+      gnome-tweaks gnome-extensions-app \
+      gnome-shell-extension-appindicator \
+      gnome-shell-extension-blur-my-shell \
+      gnome-shell-extension-forge
+  '
+fi
 
-# ── Ghostty (COPR → dnf) ──
-run_step "Ghostty" bash -c '
+# ── Ghostty ──
+run_step "Ghostty" env SCRIPTS_DIR="$SCRIPTS_DIR" bash -c '
+  source "$SCRIPTS_DIR/lib.sh"
   echo "==> Installing Ghostty..."
   if command -v ghostty &>/dev/null; then
     echo "    Ghostty already installed"
-  else
-    sudo dnf copr enable -y pgdev/ghostty
-    sudo dnf install -y ghostty
+  elif [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+    repo_enable copr pgdev/ghostty
+    pkg_install ghostty
+  elif [[ "$DISTRO_FAMILY" == "arch" ]]; then
+    pkg_install ghostty
   fi
 '
 
-# ── Cider (Apple Music — repo → dnf) ──
-run_step "Cider" bash -c '
+# ── Cider (Apple Music) ──
+run_step "Cider" env SCRIPTS_DIR="$SCRIPTS_DIR" bash -c '
+  source "$SCRIPTS_DIR/lib.sh"
   echo "==> Installing Cider..."
-  if command -v cider &>/dev/null || rpm -q Cider &>/dev/null; then
+  if command -v cider &>/dev/null || pkg_check Cider; then
     echo "    Cider already installed"
-  else
+  elif [[ "$DISTRO_FAMILY" == "fedora" ]]; then
     sudo rpm --import https://repo.cider.sh/RPM-GPG-KEY
     sudo tee /etc/yum.repos.d/cider.repo << '\''REPO'\'' >/dev/null
 [cidercollective]
@@ -92,10 +103,10 @@ gpgkey=https://repo.cider.sh/RPM-GPG-KEY
 REPO
     sudo dnf makecache
     sudo dnf install -y Cider
+  else
+    suggest_pkg "cider" "Apple Music client (install from AUR: cider)"
   fi
 '
-
-
 
 # ── Flatpak apps ──
 run_step "Flatpak apps" bash -c '
@@ -123,17 +134,20 @@ run_step "Flatpak apps" bash -c '
   done
 '
 
-# ── Cursor IDE (RPM) ──
-run_step "Cursor IDE" bash -c '
+# ── Cursor IDE ──
+run_step "Cursor IDE" env SCRIPTS_DIR="$SCRIPTS_DIR" bash -c '
+  source "$SCRIPTS_DIR/lib.sh"
   echo "==> Installing Cursor IDE..."
-  if rpm -q cursor &>/dev/null; then
+  if command -v cursor &>/dev/null || pkg_check cursor; then
     echo "    Cursor already installed"
-  else
+  elif [[ "$DISTRO_FAMILY" == "fedora" ]]; then
     CURSOR_RPM="/tmp/cursor-latest.rpm"
     curl -fSL "https://api2.cursor.sh/updates/download/golden/linux-x64-rpm/cursor/latest" \
       -o "$CURSOR_RPM"
     sudo dnf install -y "$CURSOR_RPM"
     rm -f "$CURSOR_RPM"
+  else
+    suggest_pkg "cursor" "AI code editor (install from AUR: cursor-bin)"
   fi
 '
 
@@ -217,7 +231,7 @@ run_step "Rofi GenericNames" bash "$SCRIPTS_DIR/../shared/generate-rofi-genericn
 
 echo ""
 if [[ ${#FAILED[@]} -gt 0 ]]; then
-  echo "=== Fedora app installation complete (with errors) ==="
+  echo "=== App installation complete (with errors) ==="
   echo ""
   echo "Failed steps:"
   for step in "${FAILED[@]}"; do
@@ -225,5 +239,5 @@ if [[ ${#FAILED[@]} -gt 0 ]]; then
   done
   exit 1
 else
-  echo "=== Fedora app installation complete! ==="
+  echo "=== App installation complete! ==="
 fi
