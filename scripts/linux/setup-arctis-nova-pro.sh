@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
 # Setup script for SteelSeries Arctis Nova Pro Wireless on Linux (Fedora)
 # Installs: PipeWire virtual sinks, pavucontrol, easyeffects, qpwgraph
@@ -12,7 +14,7 @@ NOVA_ROUTE_BIN="$HOME/.local/bin/nova-route"
 STEELSERIES_VID="1038"
 STEELSERIES_PID="12e0"
 
-echo "=== SteelSeries Arctis Nova Pro Wireless — Linux Setup ==="
+echo "=== SteelSeries Arctis Nova Pro Wireless — Linux Setup ($DISTRO) ==="
 
 # ── Verify device is connected ──
 echo ""
@@ -26,8 +28,7 @@ fi
 # ── Install system packages ──
 echo ""
 echo "==> Installing system packages..."
-sudo dnf install -y --skip-unavailable \
-    pavucontrol easyeffects qpwgraph \
+pkg_install pavucontrol easyeffects qpwgraph \
     python3-hidapi pipewire-utils \
     hidapi
 
