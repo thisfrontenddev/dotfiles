@@ -35,25 +35,25 @@
 	/* DYNAMIC CENTER ARROWS — red for window, green for music */
 	"custom/arrow-right-center-hdmi": {
 		"return-type": "json",
-		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-2",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-1",
 		"interval": 2,
 		"tooltip": false
 	},
 	"custom/arrow-left-center-hdmi": {
 		"return-type": "json",
-		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-2",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh HDMI-A-1",
 		"interval": 2,
 		"tooltip": false
 	},
 	"custom/arrow-right-center-dp6": {
 		"return-type": "json",
-		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-6",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-1",
 		"interval": 2,
 		"tooltip": false
 	},
 	"custom/arrow-left-center-dp6": {
 		"return-type": "json",
-		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-6",
+		"exec": "~/.config/waybar/scripts/center-arrow.sh DP-1",
 		"interval": 2,
 		"tooltip": false
 	},
@@ -170,11 +170,11 @@
 		"hide-empty-text": true
 	},
 	/* LANG */
-	"sway/language": {
+	"hyprland/language": {
 		"format": "{short}"
 	},
 	/* WINDOW */
-	"sway/window": {
+	"hyprland/window": {
 		"format": "{}",
 		"max-length": 80,
 		"rewrite": {
@@ -191,7 +191,7 @@
 		"return-type": "json",
 		"max-length": 60,
 		"escape": true,
-		"exec": "~/.config/waybar/scripts/center-display.sh HDMI-A-2",
+		"exec": "~/.config/waybar/scripts/center-display.sh HDMI-A-1",
 		"interval": 2,
 		"on-click": "playerctl play-pause",
 		"on-scroll-up": "playerctl next",
@@ -202,18 +202,18 @@
 		"return-type": "json",
 		"max-length": 60,
 		"escape": true,
-		"exec": "~/.config/waybar/scripts/center-display.sh DP-6",
+		"exec": "~/.config/waybar/scripts/center-display.sh DP-1",
 		"interval": 2,
 		"on-click": "playerctl play-pause",
 		"on-scroll-up": "playerctl next",
 		"on-scroll-down": "playerctl previous"
 	},
 	/* WORKSPACES */
-	"sway/workspaces": {
+	"hyprland/workspaces": {
 		"disable-scroll": false,
 		"all-outputs": false,
 		"format": "{name}",
-		"enable-bar-scroll": true
+		"show-special": false
 	},
 	/* TRAY */
 	"tray": {
