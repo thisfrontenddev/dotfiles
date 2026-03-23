@@ -2,15 +2,9 @@
 set -euo pipefail
 
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPTS_DIR/lib.sh"
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-step() { echo -e "\n${GREEN}[✓] $1${NC}"; }
-info() { echo -e "${YELLOW}    → $1${NC}"; }
-
-echo "=== Fedora System Setup ==="
+echo "=== Linux System Setup ($DISTRO) ==="
 
 # ── 1. Nix + Home Manager (CLI tools) ──
 step "Setting up Nix + Home Manager"
@@ -81,39 +75,36 @@ fi
 # ── 8. Sway setup ──
 step "Setting up Sway"
 
-# Patch sway desktop entry for NVIDIA (--unsupported-gpu + WLR_DRM_DEVICES)
-SWAY_DESKTOP="/usr/share/wayland-sessions/sway.desktop"
-if [[ -f "$SWAY_DESKTOP" ]]; then
-  if ! grep -q "unsupported-gpu" "$SWAY_DESKTOP" 2>/dev/null; then
-    sudo cp "$SWAY_DESKTOP" "${SWAY_DESKTOP}.bak"
-    # Detect NVIDIA GPU card (typically card1 or card2) and set device ordering
-    NVIDIA_CARD=$(ls -d /dev/dri/card* 2>/dev/null | while read card; do
-      if udevadm info -a "$card" 2>/dev/null | grep -q "nvidia"; then echo "$card"; break; fi
-    done)
-    OTHER_CARDS=$(ls /dev/dri/card* 2>/dev/null | grep -v "${NVIDIA_CARD:-NONE}" | tr '\n' ':' | sed 's/:$//')
-    if [[ -n "$NVIDIA_CARD" && -n "$OTHER_CARDS" ]]; then
-      DRM_DEVICES="$NVIDIA_CARD:$OTHER_CARDS"
-      sudo sed -i "s|Exec=sway|Exec=env WLR_DRM_DEVICES=$DRM_DEVICES sway --unsupported-gpu|" "$SWAY_DESKTOP"
-      info "Sway desktop entry patched: WLR_DRM_DEVICES=$DRM_DEVICES --unsupported-gpu"
+if [[ "$DISTRO_FAMILY" == "fedora" ]]; then
+  # Patch sway desktop entry for NVIDIA (--unsupported-gpu + WLR_DRM_DEVICES)
+  SWAY_DESKTOP="/usr/share/wayland-sessions/sway.desktop"
+  if [[ -f "$SWAY_DESKTOP" ]]; then
+    if ! grep -q "unsupported-gpu" "$SWAY_DESKTOP" 2>/dev/null; then
+      sudo cp "$SWAY_DESKTOP" "${SWAY_DESKTOP}.bak"
+      # Detect NVIDIA GPU card (typically card1 or card2) and set device ordering
+      NVIDIA_CARD=$(ls -d /dev/dri/card* 2>/dev/null | while read card; do
+        if udevadm info -a "$card" 2>/dev/null | grep -q "nvidia"; then echo "$card"; break; fi
+      done)
+      OTHER_CARDS=$(ls /dev/dri/card* 2>/dev/null | grep -v "${NVIDIA_CARD:-NONE}" | tr '\n' ':' | sed 's/:$//')
+      if [[ -n "$NVIDIA_CARD" && -n "$OTHER_CARDS" ]]; then
+        DRM_DEVICES="$NVIDIA_CARD:$OTHER_CARDS"
+        sudo sed -i "s|Exec=sway|Exec=env WLR_DRM_DEVICES=$DRM_DEVICES sway --unsupported-gpu|" "$SWAY_DESKTOP"
+        info "Sway desktop entry patched: WLR_DRM_DEVICES=$DRM_DEVICES --unsupported-gpu"
+      else
+        sudo sed -i 's|Exec=sway|Exec=sway --unsupported-gpu|' "$SWAY_DESKTOP"
+        info "Sway desktop entry patched with --unsupported-gpu"
+      fi
     else
-      sudo sed -i 's|Exec=sway|Exec=sway --unsupported-gpu|' "$SWAY_DESKTOP"
-      info "Sway desktop entry patched with --unsupported-gpu"
+      info "Sway desktop entry already patched"
     fi
-  else
-    info "Sway desktop entry already patched"
   fi
 fi
 
-# Generate wallpaper from Fedora default (if not already present)
+# Generate wallpaper (if not already present)
 WALLPAPER_DIR="$HOME/.config/sway/wallpapers"
 mkdir -p "$WALLPAPER_DIR"
 if [[ ! -f "$WALLPAPER_DIR/f43-night.png" ]]; then
-  # Try to find a Fedora wallpaper to use, or create a solid color fallback
-  FEDORA_WP=$(find /usr/share/backgrounds -name "*night*" -o -name "*f43*" 2>/dev/null | head -1)
-  if [[ -n "$FEDORA_WP" ]]; then
-    cp "$FEDORA_WP" "$WALLPAPER_DIR/f43-night.png"
-    info "Wallpaper copied from $FEDORA_WP"
-  elif command -v convert &>/dev/null; then
+  if command -v convert &>/dev/null; then
     convert -size 2560x1440 xc:'#1e1e2e' "$WALLPAPER_DIR/f43-night.png"
     info "Solid Catppuccin Mocha wallpaper generated"
   else
@@ -229,8 +220,12 @@ if [[ -f "$SCRIPTS_DIR/setup-arctis-nova-pro.sh" ]]; then
 fi
 
 echo ""
-echo "=== Fedora setup complete! ==="
+echo "=== Linux setup complete! ($DISTRO) ==="
 echo ""
-echo -e "${YELLOW}  Log out and back in for:${NC}"
-echo "    - GNOME extensions to fully activate"
-echo "    - Sway available at GDM login screen"
+if command -v gsettings &>/dev/null && [[ "${XDG_CURRENT_DESKTOP:-}" == *"GNOME"* ]]; then
+  echo -e "${YELLOW}  Log out and back in for:${NC}"
+  echo "    - GNOME extensions to fully activate"
+  echo "    - Sway available at GDM login screen"
+else
+  echo -e "${YELLOW}  Log out and back in to apply all changes.${NC}"
+fi
