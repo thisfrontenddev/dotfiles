@@ -1,0 +1,11 @@
+[Unit]
+Description=macOS-style press-and-hold accent picker
+After=default.target
+
+[Service]
+ExecStart=%h/scripts/linux/accent-picker.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

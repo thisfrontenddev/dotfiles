@@ -201,7 +201,29 @@ bash "$SCRIPTS_DIR/install-cybrland.sh"
 step "Applying system hardening"
 bash "$SCRIPTS_DIR/harden.sh"
 
-# ── 16. Optional: Gaming setup ──
+# ── 16. Accent picker (macOS-style press-and-hold) ──
+step "Setting up accent picker"
+if [[ -f "$HOME/scripts/linux/accent-picker.py" ]]; then
+  # Ensure user is in the input group (for /dev/input + /dev/uinput access)
+  if ! id -nG "$USER" | grep -qw input; then
+    sudo usermod -aG input "$USER"
+    info "Added $USER to input group (takes effect on next login)"
+  else
+    info "User already in input group"
+  fi
+  # Enable systemd user service
+  if [[ -f "$HOME/.config/systemd/user/accent-picker.service" ]]; then
+    systemctl --user daemon-reload
+    systemctl --user enable accent-picker.service
+    info "accent-picker service enabled (starts on next login)"
+  else
+    info "WARNING: accent-picker.service not found — skipping"
+  fi
+else
+  info "accent-picker.py not found — skipping"
+fi
+
+# ── 17. Optional: Gaming setup ──
 if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   read -rp "Install gaming tools (Steam, gamemode, mangohud)? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then
@@ -210,7 +232,7 @@ if [[ -f "$SCRIPTS_DIR/setup-gaming.sh" ]]; then
   fi
 fi
 
-# ── 17. Optional: Arctis Nova Pro headset ──
+# ── 18. Optional: Arctis Nova Pro headset ──
 if [[ -f "$SCRIPTS_DIR/setup-arctis-nova-pro.sh" ]]; then
   read -rp "Set up SteelSeries Arctis Nova Pro headset? [y/N] " ans
   if [[ "$ans" =~ ^[Yy]$ ]]; then
