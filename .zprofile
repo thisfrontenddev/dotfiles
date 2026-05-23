@@ -1,1 +1,1 @@
-/home/void/.config/zsh/.zprofile
+.config/zsh/.zprofile

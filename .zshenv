@@ -1,1 +1,1 @@
-/home/void/.config/zsh/.zshenv
+.config/zsh/.zshenv
