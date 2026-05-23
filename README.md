@@ -5,7 +5,7 @@ Configuration files for my two machines, managed as a [bare git repo](https://ww
 | Machine | OS | WM / DE | Terminal |
 |---|---|---|---|
 | MacBook Pro M1 | macOS | AeroSpace | Ghostty + tmux |
-| Desktop (RTX 4070 Ti Super) | Fedora 43 | Sway + GNOME | Ghostty + tmux |
+| Desktop (RTX 5070 Ti) | Arch Linux | Hyprland / Sway | Ghostty + tmux |
 
 ## Quick start
 
@@ -43,19 +43,24 @@ dot pull
 ## Repo structure
 
 ```
-setup.sh                          # Entrypoint — detects OS, runs the right bootstrap
+setup.sh                          # Entrypoint — detects OS, then on Linux dispatches by /etc/os-release
 
 scripts/
-  linux/
-    bootstrap.sh                  # Full Linux bootstrap (packages, fonts, shell, Fedora setup)
+  fedora/
+    bootstrap.sh                  # Fedora bootstrap (packages, fonts, shell, then runs setup.sh)
     setup.sh                      # Fedora-specific: Nix, GNOME/Sway, Snapper, Rust, hardening
+    setup-nix.sh                  # Nix + Home Manager install + apply (Fedora-only)
     install-apps.sh               # DNF, Flatpak, COPR, AppImage installs
     install-drivers.sh            # NVIDIA + RPM Fusion
-    harden.sh                     # Firewall, DNS-over-TLS, sysctl, fail2ban, auto-updates
+    harden.sh                     # firewalld, DNS-over-TLS, sysctl, fail2ban, auto-updates
     setup-arctis-nova-pro.sh      # SteelSeries headset (PipeWire virtual sinks)
     setup-gaming.sh               # Steam + compatibility stack
+    setup-g915.sh                 # Logitech G915 TKL lighting (orchestrates ~/.config/g915 assets)
     install-cybrland.sh           # CYBRland theme setup
     cybrwall.sh                   # Wallpaper switcher (rofi picker)
+    accent-picker.py              # macOS-style press-and-hold accent popup for Wayland
+    lib.sh                        # Helpers: distro detect, pkg_install w/ Fedora→Arch mapping
+  arch/                           # Work-in-progress — populated as Arch scripts are written
   macos/
     bootstrap.sh                  # macOS bootstrap (Xcode, Homebrew, defaults, security)
     homebrew.sh                   # Homebrew installer + bundle
@@ -67,13 +72,15 @@ scripts/
     optimize-sysctl.sh            # Kernel limits
     xcode-setup.sh                # Xcode CLI tools
   shared/
-    setup-nix.sh                  # Nix + Home Manager install + apply
-    rust.sh                       # Rust toolchain via rustup
+    rust.sh                       # Rust toolchain via rustup (cross-OS)
     audio-switch.sh               # Audio output/input switcher (rofi + wpctl)
     generate-rofi-genericnames.sh # Rofi desktop file ID display
+    setup-obsidian-git.sh         # Obsidian vault git auto-sync
 
 Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
 ```
+
+**Distro dispatch on Linux**: `setup.sh` reads `/etc/os-release` and runs `scripts/fedora/bootstrap.sh` or `scripts/arch/bootstrap.sh`. The Arch tree is incomplete — running setup on a fresh Arch box currently errors out with a clear message until the Arch scripts are added.
 
 ## Configuration
 
@@ -105,9 +112,9 @@ Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
   ghostty/config                  # Terminal: CYBRland palette, tmux keybinds (super key)
   tmux/tmux.conf                  # Tmux config
   starship.toml                   # Prompt theme
-  home-manager/
+  home-manager/                   # Fedora-only — Nix installs CLI tools that dnf ships stale
     flake.nix                     # Nix flake (auto-detects x86_64-linux / aarch64-darwin)
-    home.nix                      # Shared CLI tools: bat, eza, fzf, gh, starship, tmux, etc.
+    home.nix                      # CLI tool list (bat, eza, fzf, gh, starship, tmux...) for Fedora
 
   # Linux-only
   sway/config                     # Sway WM (Alt keybinds, per-monitor workspaces)
@@ -127,19 +134,21 @@ Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
 
 Tools are installed through different channels depending on the platform:
 
-| What | macOS | Linux (Fedora) |
-|---|---|---|
-| CLI tools (bat, eza, fzf, gh, starship...) | Homebrew (`Brewfile`) | Nix Home Manager (`home.nix`) |
-| GUI apps | Homebrew casks (`Brewfile`) | DNF, Flatpak, COPR (`install-apps.sh`) |
-| System packages (compilers, libs) | Xcode CLI tools | DNF (`bootstrap.sh`) |
-| Node.js | fnm (via Homebrew) | fnm (via Nix) |
-| Rust | rustup (via Homebrew) | rustup (via Nix) |
+| What | macOS | Fedora | Arch |
+|---|---|---|---|
+| CLI tools (bat, eza, fzf, gh, starship...) | Homebrew (`Brewfile`) | Nix Home Manager (`home.nix`) | paru (Arch repos + AUR) |
+| GUI apps | Homebrew casks (`Brewfile`) | DNF, Flatpak, COPR (`install-apps.sh`) | paru, Flatpak |
+| System packages (compilers, libs) | Xcode CLI tools | DNF (`bootstrap.sh`) | pacman |
+| Node.js | fnm (via Homebrew) | fnm (via Nix) | fnm (`pacman -S fnm`) |
+| Rust | rustup (via Homebrew) | rustup (via Nix) | rustup (`pacman -S rustup`) |
+
+Nix is intentionally Fedora-only: dnf often ships stale dev-tool versions, so Nix earns its complexity there. Brew and paru both cover the same tool list cleanly, so adding Nix on top would just be redundancy.
 
 ### Adding a new CLI tool
 
-1. Add to `.config/home-manager/home.nix` (Linux uses this)
-2. Add to `Brewfile` (macOS uses this)
-3. Run `home-manager switch --flake ~/.config/home-manager` or `brew bundle`
+1. Add to `Brewfile` (macOS uses this)
+2. Add to `.config/home-manager/home.nix` (Fedora uses this — run `home-manager switch --flake ~/.config/home-manager` after)
+3. Add to your future `scripts/arch/` install list (Arch uses paru)
 
 ## Key aliases
 

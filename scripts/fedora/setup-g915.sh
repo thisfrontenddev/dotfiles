@@ -18,7 +18,14 @@ warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 skip() { echo -e "${YELLOW}[=]${NC} $1 (already done)"; }
 error() { echo -e "${RED}[x]${NC} $1"; }
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Support files (g915-led binary, udev rule, autostart, profile writer, resume hook)
+# live under ~/.config/g915/. This script orchestrates them but lives elsewhere
+# (scripts/fedora/) so it can be moved/Arch-equivalent without touching the assets.
+SCRIPT_DIR="$HOME/.config/g915"
+if [[ ! -d "$SCRIPT_DIR" ]]; then
+    error "Support files not found at $SCRIPT_DIR — check your dotfiles checkout."
+    exit 1
+fi
 
 # --- Pre-flight checks ---
 if [[ ! -f /etc/fedora-release ]]; then

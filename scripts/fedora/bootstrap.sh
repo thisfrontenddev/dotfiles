@@ -12,8 +12,10 @@ echo "==> Installing system packages..."
 pkg_install zsh git gcc gcc-c++ cmake fontconfig curl
 
 # ── Step 2: Nix + Home Manager (declarative package management) ──
+# Nix is Fedora-only — dnf often ships stale dev-tool versions, so Nix earns its keep here.
+# Arch/macOS use their native package managers instead (paru / brew).
 echo "==> Setting up Nix..."
-bash "$SHARED_DIR/setup-nix.sh"
+bash "$SCRIPTS_DIR/setup-nix.sh"
 
 # ── Step 3: Clone dotfiles (if not already present) ──
 if [[ ! -d "$HOME/.cfg" ]]; then

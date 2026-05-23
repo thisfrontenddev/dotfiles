@@ -8,7 +8,7 @@ echo "=== Linux System Setup ($DISTRO) ==="
 
 # ── 1. Nix + Home Manager (CLI tools) ──
 step "Setting up Nix + Home Manager"
-bash "$SCRIPTS_DIR/../shared/setup-nix.sh"
+bash "$SCRIPTS_DIR/setup-nix.sh"
 
 # ── 2. Install packages and apps ──
 step "Installing packages and apps"
@@ -191,7 +191,7 @@ fi
 
 # ── 13. Logitech G915 TKL lighting ──
 step "Setting up Logitech G915 TKL lighting"
-bash "$HOME/.config/g915/setup.sh"
+bash "$SCRIPTS_DIR/setup-g915.sh"
 
 # ── 14. CYBRland theme (wallpapers, sway/waybar dependencies) ──
 step "Installing CYBRland theme"
