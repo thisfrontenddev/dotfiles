@@ -1,6 +1,6 @@
 #!/bin/bash
 # install-cybrland.sh — Reproducible setup for cybrland theme on Fedora + Sway
-# Run: bash ~/scripts/linux/install-cybrland.sh
+# Run: bash ~/scripts/fedora/install-cybrland.sh
 set -euo pipefail
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPTS_DIR/lib.sh"

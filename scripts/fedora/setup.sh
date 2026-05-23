@@ -203,7 +203,7 @@ bash "$SCRIPTS_DIR/harden.sh"
 
 # ── 16. Accent picker (macOS-style press-and-hold) ──
 step "Setting up accent picker"
-if [[ -f "$HOME/scripts/linux/accent-picker.py" ]]; then
+if [[ -f "$SCRIPTS_DIR/accent-picker.py" ]]; then
   # Ensure user is in the input group (for /dev/input + /dev/uinput access)
   if ! id -nG "$USER" | grep -qw input; then
     sudo usermod -aG input "$USER"

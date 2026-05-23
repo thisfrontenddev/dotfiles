@@ -3,7 +3,7 @@ Description=macOS-style press-and-hold accent picker
 After=default.target
 
 [Service]
-ExecStart=%h/scripts/linux/accent-picker.py
+ExecStart=%h/scripts/fedora/accent-picker.py
 Restart=on-failure
 RestartSec=3
 
