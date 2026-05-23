@@ -1,7 +1,7 @@
 /*
 # ---------------------------------------
 # CYBRbar     waybar modules (part of cybrland)
-# Adapted for Fedora + Sway by void
+# Adapted for Sway (distro-agnostic)
 # Original:   https://github.com/scherrer-txt/cybrland
 # Author:     scherrer-txt   |   License:     GPL-3.0
 # ---------------------------------------
@@ -128,7 +128,7 @@
 		"on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+",
 		"on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
 	},
-	/* LOGO (Fedora) */
+	/* LOGO */
 	"custom/logo": {
 		"format": "  ",
 		"tooltip": false,
@@ -164,8 +164,8 @@
 			"pending-updates": "󰋠",
 			"updated": ""
 		},
-		"exec-if": "test -x ~/.config/waybar/scripts/dnf-updates.sh",
-		"exec": "~/.config/waybar/scripts/dnf-updates.sh",
+		"exec-if": "test -x ~/.config/waybar/scripts/pkg-updates.sh",
+		"exec": "~/.config/waybar/scripts/pkg-updates.sh",
 		"interval": 3600,
 		"hide-empty-text": true
 	},
