@@ -51,6 +51,12 @@ SECRETS
   echo "  Created $SECRETS_FILE"
 fi
 
+# ── 5. cybr theming: clone components into the cache + relink (idempotent) ──
+if [[ -x "$HOME/scripts/shared/cybr-sync" ]]; then
+  echo "==> Syncing cybr theming components..."
+  "$HOME/scripts/shared/cybr-sync"
+fi
+
 echo ""
 echo "=== Arch shell bootstrap complete ==="
 echo "  • Log out/in (or open a new terminal) to start using fish"

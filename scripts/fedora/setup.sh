@@ -193,10 +193,6 @@ fi
 step "Setting up Logitech G915 TKL lighting"
 bash "$SCRIPTS_DIR/setup-g915.sh"
 
-# ── 14. CYBRland theme (wallpapers, sway/waybar dependencies) ──
-step "Installing CYBRland theme"
-bash "$SCRIPTS_DIR/install-cybrland.sh"
-
 # ── 15. System hardening ──
 step "Applying system hardening"
 bash "$SCRIPTS_DIR/harden.sh"
