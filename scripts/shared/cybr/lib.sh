@@ -53,14 +53,21 @@ cybr::cache_dir() { printf '%s/%s' "$CYBR_CACHE" "$1"; }
 
 # Clone if absent, else fetch. Leaves the repo on its default branch tip.
 cybr::clone_or_update() { # component, repo_url
-  local dir; dir="$(cybr::cache_dir "$1")"
+  local comp="${1:?usage: clone_or_update <component> <repo_url>}"
+  local url="${2:?usage: clone_or_update <component> <repo_url>}"
+  local dir; dir="$(cybr::cache_dir "$comp")"
   if [[ -d "$dir/.git" ]]; then
     git -C "$dir" fetch --quiet --all --tags
-    git -C "$dir" checkout --quiet "$(git -C "$dir" rev-parse --abbrev-ref origin/HEAD | sed 's@^origin/@@')" 2>/dev/null || true
-    git -C "$dir" pull --quiet --ff-only 2>/dev/null || true
+    local branch
+    branch="$(git -C "$dir" rev-parse --abbrev-ref origin/HEAD)" || {
+      echo "cybr: cannot resolve default branch for $comp" >&2; return 1
+    }
+    branch="${branch#origin/}"
+    git -C "$dir" checkout --quiet "$branch"
+    git -C "$dir" pull --quiet --ff-only
   else
     mkdir -p "$(dirname "$dir")"
-    git clone --quiet "$2" "$dir"
+    git clone --quiet "$url" "$dir"
   fi
 }
 
