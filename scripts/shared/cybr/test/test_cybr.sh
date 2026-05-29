@@ -67,6 +67,44 @@ cybr::clone_or_update cybr-fake "file://$FAKE" >/dev/null 2>&1
 cybr::checkout cybr-fake "$SHA1" >/dev/null 2>&1
 assert_eq "checkout pins to SHA" "v1" "$(cat "$CDIR/file.txt")"
 
+echo "== Task 4: mirror + loader =="
+# Fake a cached hypr-style component.
+HC="$CYBR_CACHE/cybr-hyprland"; mkdir -p "$HC"
+printf 'source = ~/.config/hypr/theme.conf\nbind=X\n' > "$HC/hyprland.conf"
+printf 'col=1\n' > "$HC/theme.conf"
+printf 'var=1\n' > "$HC/vars.conf"
+TARGET="$CYBR_HOME/.config/hypr"
+
+cybr::mirror_upstream cybr-hyprland   # symlink all but entry into target
+assert_file "mirror symlinks theme.conf" "$TARGET/theme.conf"
+assert_eq "theme.conf is a symlink into cache" "$HC/theme.conf" "$(readlink "$TARGET/theme.conf")"
+assert_eq "entry file NOT mirrored as symlink" "" "$(readlink "$TARGET/hyprland.conf")"
+
+cybr::scaffold_override cybr-hyprland
+assert_file "override scaffolded" "$TARGET/override.conf"
+
+cybr::write_loader cybr-hyprland
+loader="$(cat "$TARGET/hyprland.conf")"
+assert_contains "loader sources cached entry" "$loader" "$HC/hyprland.conf"
+assert_contains "loader sources override last" "$loader" "$TARGET/override.conf"
+# override must come AFTER upstream in the file (last wins)
+up_line="$(grep -n "$HC/hyprland.conf" "$TARGET/hyprland.conf" | head -1 | cut -d: -f1)"
+ov_line="$(grep -n "override.conf" "$TARGET/hyprland.conf" | head -1 | cut -d: -f1)"
+assert_eq "override included after upstream" "true" "$([[ $ov_line -gt $up_line ]] && echo true || echo false)"
+
+# jsonc style
+WC="$CYBR_CACHE/cybr-waybar"; mkdir -p "$WC"
+printf '{ "include": "~/.config/waybar/modules.jsonc" }\n' > "$WC/config.jsonc"
+printf '{}\n' > "$WC/modules.jsonc"
+WT="$CYBR_HOME/.config/waybar"
+cybr::mirror_upstream cybr-waybar
+assert_eq "waybar modules.jsonc mirrored" "$WC/modules.jsonc" "$(readlink "$WT/modules.jsonc")"
+cybr::scaffold_override cybr-waybar
+cybr::write_loader cybr-waybar
+wloader="$(cat "$WT/config.jsonc")"
+assert_contains "waybar loader includes cached entry" "$wloader" "$WC/config.jsonc"
+assert_contains "waybar loader includes override" "$wloader" "override.jsonc"
+
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [[ $FAIL -eq 0 ]]
