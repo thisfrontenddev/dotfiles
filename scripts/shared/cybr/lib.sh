@@ -162,8 +162,9 @@ cybr::pm() {
   else echo ""; fi
 }
 cybr::pm_missing() { # pkgs... -> prints those not installed
-  local p; for p in "$@"; do
-    case "$(cybr::pm)" in
+  local p pm; pm="$(cybr::pm)"
+  for p in "$@"; do
+    case "$pm" in
       paru) paru -Qi "$p" >/dev/null 2>&1 || echo "$p" ;;
       dnf)  rpm -q "$p"  >/dev/null 2>&1 || echo "$p" ;;
       apt)  dpkg -s "$p" >/dev/null 2>&1 || echo "$p" ;;
@@ -227,8 +228,9 @@ cybr::deploy() { # component
 
 cybr::cmd_enable() { # component
   local c="$1" repo
-  cybr::reg_get "$c" repo >/dev/null || { echo "cybr: unknown component $c" >&2; return 1; }
-  repo="${CYBR_TEST_REMOTE:-$(cybr::reg_get "$c" repo)}"
+  repo="$(cybr::reg_get "$c" repo)"
+  [[ -n "$repo" ]] || { echo "cybr: unknown component $c" >&2; return 1; }
+  repo="${CYBR_TEST_REMOTE:-$repo}"
   echo "Enabling $c"
   cybr::clone_or_update "$c" "$repo"
   cybr::install_deps "$c"
@@ -241,7 +243,9 @@ cybr::cmd_disable() { # component
   local c="$1" ov target entry
   target="$(cybr::target_dir "$c")"; entry="$(cybr::reg_get "$c" entry)"
   ov="$(cybr::override_path "$c")"
-  [[ -n "$ov" && -e "$ov" ]] && mv "$ov" "$ov.disabled-$(cybr::head_sha "$c" 2>/dev/null || echo old)" 2>/dev/null || true
+  if [[ -n "$ov" && -e "$ov" ]]; then
+    mv "$ov" "$ov.disabled-$(cybr::head_sha "$c" 2>/dev/null || echo old)" 2>/dev/null || true
+  fi
   [[ -n "$entry" && -e "$target/$entry" ]] && rm -f "$target/$entry"
   cybr::manifest_del "$c"
   echo "Disabled $c (loader removed; override archived; cache left intact)"

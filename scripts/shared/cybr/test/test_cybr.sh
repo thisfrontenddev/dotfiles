@@ -147,6 +147,11 @@ assert_eq "enable recorded in manifest" "1" "$(grep -c '^cybr-waybar' "$CYBR_MAN
 cybr::cmd_disable cybr-waybar >/dev/null 2>&1 || true
 assert_eq "disable dropped manifest entry" "0" "$(grep -c '^cybr-waybar' "$CYBR_MANIFEST" 2>/dev/null || echo 0)"
 
+# unknown component gives a clean error + non-zero exit
+out="$(cybr::cmd_enable definitely-not-a-component 2>&1)"; rc=$?
+assert_eq "enable unknown component exits non-zero" "1" "$rc"
+assert_contains "enable unknown component error msg" "$out" "unknown component"
+
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [[ $FAIL -eq 0 ]]
