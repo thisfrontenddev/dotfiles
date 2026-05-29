@@ -95,19 +95,29 @@ cybr::override_path() { # component -> absolute override file path
 # Symlink every top-level upstream file into the target dir EXCEPT the entry
 # file (which becomes the loader) and the override file (user-owned). This makes
 # upstream's internal `~/.config/...` references resolve through the symlinks.
+# Safety: stale symlinks are replaced cleanly; a real (non-symlink) file or dir
+# already at the target is moved to `<path>.pre-cybr.bak` before linking, so we
+# never silently destroy user data or nest a link inside an existing dir.
 cybr::mirror_upstream() { # component
-  local dir target entry f base
+  local dir target entry f base dest
   dir="$(cybr::cache_dir "$1")"; target="$(cybr::target_dir "$1")"
   entry="$(cybr::reg_get "$1" entry)"
   mkdir -p "$target"
+  local had_nullglob=1; shopt -q nullglob || had_nullglob=0
+  shopt -s nullglob
   for f in "$dir"/*; do
-    [[ -e "$f" ]] || continue
     base="$(basename "$f")"
-    [[ "$base" == ".git" ]] && continue
     [[ "$base" == "$entry" ]] && continue
     [[ "$base" == "README.md" || "$base" == "LICENSE" ]] && continue
-    ln -sfn "$f" "$target/$base"
+    dest="$target/$base"
+    if [[ -L "$dest" ]]; then
+      rm -f "$dest"                       # stale symlink: replace cleanly
+    elif [[ -e "$dest" ]]; then           # real file/dir: back up, never destroy/nest
+      if [[ -e "$dest.pre-cybr.bak" ]]; then rm -rf "$dest"; else mv "$dest" "$dest.pre-cybr.bak"; fi
+    fi
+    ln -sfn "$f" "$dest"
   done
+  (( had_nullglob )) || shopt -u nullglob
 }
 
 # Create an empty override file (preserving any existing one).

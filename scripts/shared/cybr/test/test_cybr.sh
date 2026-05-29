@@ -105,6 +105,23 @@ wloader="$(cat "$WT/config.jsonc")"
 assert_contains "waybar loader includes cached entry" "$wloader" "$WC/config.jsonc"
 assert_contains "waybar loader includes override" "$wloader" "override.jsonc"
 
+# --- safety: real file backed up, not clobbered ---
+SF="$CYBR_CACHE/cybr-hyprland"   # reuse the hypr fake cache from above (has theme.conf)
+ST="$CYBR_HOME/.config/hypr"
+printf 'MY REAL CONFIG\n' > "$ST/theme.conf"   # overwrite the symlink with a REAL file
+rm -f "$ST/theme.conf"; printf 'MY REAL CONFIG\n' > "$ST/theme.conf"  # ensure it's a real file, not a link
+cybr::mirror_upstream cybr-hyprland
+assert_eq "real theme.conf backed up" "MY REAL CONFIG" "$(cat "$ST/theme.conf.pre-cybr.bak")"
+assert_eq "theme.conf now a symlink again" "$SF/theme.conf" "$(readlink "$ST/theme.conf")"
+
+# --- safety: real subdir replaced, not nested ---
+rm -rf "$SF/walls"; mkdir -p "$SF/walls"; printf 'x' > "$SF/walls/a.png"   # upstream ships a subdir
+rm -rf "$ST/walls"; mkdir -p "$ST/walls"; printf 'mine' > "$ST/walls/old.png"  # user has a real subdir
+cybr::mirror_upstream cybr-hyprland
+assert_eq "walls is now a symlink (not nested)" "$SF/walls" "$(readlink "$ST/walls")"
+assert_eq "no nested walls/walls symlink" "" "$(readlink "$ST/walls/walls" 2>/dev/null)"
+assert_eq "user walls backed up" "mine" "$(cat "$ST/walls.pre-cybr.bak/old.png")"
+
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [[ $FAIL -eq 0 ]]
