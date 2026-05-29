@@ -47,6 +47,26 @@ printf 'cybr-hyprland = "abc123"\n' > "$CYBR_MANIFEST"
 out="$(cybr::cmd_list)"
 assert_contains "list marks enabled" "$out" "[x] cybr-hyprland"
 
+echo "== Task 3: cache =="
+# Build a local fake upstream git repo so tests need no network.
+FAKE="$TMP/fake-remote"; mkdir -p "$FAKE"
+( cd "$FAKE" && git init -q && git config user.email t@t && git config user.name t \
+  && git config commit.gpgsign false \
+  && echo "v1" > file.txt && git add . && git commit -qm v1 )
+SHA1="$(cd "$FAKE" && git rev-parse HEAD)"
+
+CDIR="$(cybr::cache_dir cybr-fake)"
+assert_eq "cache_dir path" "$CYBR_CACHE/cybr-fake" "$CDIR"
+
+cybr::clone_or_update cybr-fake "file://$FAKE" >/dev/null 2>&1
+assert_file "clone creates cache dir" "$CDIR/file.txt"
+
+# add a second upstream commit, then verify checkout pins to SHA1
+( cd "$FAKE" && git config commit.gpgsign false && echo "v2" > file.txt && git commit -qam v2 )
+cybr::clone_or_update cybr-fake "file://$FAKE" >/dev/null 2>&1
+cybr::checkout cybr-fake "$SHA1" >/dev/null 2>&1
+assert_eq "checkout pins to SHA" "v1" "$(cat "$CDIR/file.txt")"
+
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [[ $FAIL -eq 0 ]]

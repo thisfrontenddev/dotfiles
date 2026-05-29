@@ -49,6 +49,32 @@ cybr::cmd_list() {
   done < <(cybr::reg_components)
 }
 
+cybr::cache_dir() { printf '%s/%s' "$CYBR_CACHE" "$1"; }
+
+# Clone if absent, else fetch. Leaves the repo on its default branch tip.
+cybr::clone_or_update() { # component, repo_url
+  local dir; dir="$(cybr::cache_dir "$1")"
+  if [[ -d "$dir/.git" ]]; then
+    git -C "$dir" fetch --quiet --all --tags
+    git -C "$dir" checkout --quiet "$(git -C "$dir" rev-parse --abbrev-ref origin/HEAD | sed 's@^origin/@@')" 2>/dev/null || true
+    git -C "$dir" pull --quiet --ff-only 2>/dev/null || true
+  else
+    mkdir -p "$(dirname "$dir")"
+    git clone --quiet "$2" "$dir"
+  fi
+}
+
+# Pin to an exact commit (detached).
+cybr::checkout() { # component, sha
+  local dir; dir="$(cybr::cache_dir "$1")"
+  git -C "$dir" checkout --quiet "$2"
+}
+
+# Current HEAD sha of a cached component.
+cybr::head_sha() { # component
+  git -C "$(cybr::cache_dir "$1")" rev-parse HEAD
+}
+
 # Stubs replaced in later tasks.
 for _c in enable disable sync update status diff; do
   eval "cybr::cmd_$_c() { echo 'not implemented' >&2; return 1; }"
