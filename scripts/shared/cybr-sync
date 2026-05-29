@@ -51,5 +51,7 @@ link  cybr-hyprland/vars.conf "$HOME/.config/hypr/vars.conf"
 # plain `waybar`. Re-add personal modules later as real files (they'll shadow
 # the symlinks). Multi-monitor: uncomment BAR 2 + set "output" in config.jsonc.
 clone  cybr-waybar https://github.com/cybrcore/cybr-waybar.git
-mirror cybr-waybar "$HOME/.config/waybar"
+# modules.jsonc is skipped: it's your local override (custom/updates uses paru via
+# pkg-updates.sh). config.jsonc/style.css/scripts/svg stay symlinked to upstream.
+mirror cybr-waybar "$HOME/.config/waybar" modules.jsonc
 chmod +x "$CACHE"/cybr-waybar/scripts/* 2>/dev/null || true
