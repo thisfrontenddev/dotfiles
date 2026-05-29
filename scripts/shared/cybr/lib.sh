@@ -154,8 +154,114 @@ EOF
   esac
 }
 
+# --- package manager (runtime detection) ---
+cybr::pm() {
+  if command -v paru >/dev/null; then echo paru
+  elif command -v dnf >/dev/null; then echo dnf
+  elif command -v apt >/dev/null; then echo apt
+  else echo ""; fi
+}
+cybr::pm_missing() { # pkgs... -> prints those not installed
+  local p; for p in "$@"; do
+    case "$(cybr::pm)" in
+      paru) paru -Qi "$p" >/dev/null 2>&1 || echo "$p" ;;
+      dnf)  rpm -q "$p"  >/dev/null 2>&1 || echo "$p" ;;
+      apt)  dpkg -s "$p" >/dev/null 2>&1 || echo "$p" ;;
+      *)    echo "$p" ;;
+    esac
+  done
+}
+cybr::pm_install() { # pkgs...
+  [[ $# -eq 0 ]] && return 0
+  case "$(cybr::pm)" in
+    paru) paru -S --needed --noconfirm "$@" ;;
+    dnf)  sudo dnf install -y "$@" ;;
+    apt)  sudo apt-get install -y "$@" ;;
+    *)    echo "cybr: no supported package manager; install manually: $*" >&2 ;;
+  esac
+}
+cybr::install_deps() { # component
+  local deps missing
+  deps="$(cybr::reg_get "$1" deps)"
+  [[ -z "$deps" ]] && return 0
+  # shellcheck disable=SC2086
+  missing="$(cybr::pm_missing $deps)"
+  [[ -z "$missing" ]] && { echo "  deps: all present"; return 0; }
+  echo "  deps: installing $missing"
+  # shellcheck disable=SC2086
+  cybr::pm_install $missing
+}
+
+# --- manifest writers ---
+cybr::manifest_set() { # component, sha
+  mkdir -p "$(dirname "$CYBR_MANIFEST")"; touch "$CYBR_MANIFEST"
+  local tmp; tmp="$(mktemp)"
+  grep -v "^$1[[:space:]]*=" "$CYBR_MANIFEST" > "$tmp" || true
+  printf '%s = "%s"\n' "$1" "$2" >> "$tmp"
+  sort -o "$tmp" "$tmp"; mv "$tmp" "$CYBR_MANIFEST"
+}
+cybr::manifest_del() { # component
+  [[ -f "$CYBR_MANIFEST" ]] || return 0
+  local tmp; tmp="$(mktemp)"
+  grep -v "^$1[[:space:]]*=" "$CYBR_MANIFEST" > "$tmp" || true
+  if [[ -s "$tmp" ]]; then
+    mv "$tmp" "$CYBR_MANIFEST"
+  else
+    rm -f "$tmp" "$CYBR_MANIFEST"
+  fi
+}
+cybr::manifest_get() { # component -> sha
+  [[ -f "$CYBR_MANIFEST" ]] || return 0
+  grep "^$1[[:space:]]*=" "$CYBR_MANIFEST" | sed 's/^[^=]*=[ \t]*//; s/^"//; s/"$//'
+}
+
+# Deploy one component end-to-end (assumes cache already at desired sha).
+cybr::deploy() { # component
+  local style; style="$(cybr::reg_get "$1" style)"
+  cybr::mirror_upstream "$1"
+  if [[ "$style" != "none" ]]; then
+    cybr::scaffold_override "$1"
+    cybr::write_loader "$1"
+  fi
+}
+
+cybr::cmd_enable() { # component
+  local c="$1" repo
+  cybr::reg_get "$c" repo >/dev/null || { echo "cybr: unknown component $c" >&2; return 1; }
+  repo="${CYBR_TEST_REMOTE:-$(cybr::reg_get "$c" repo)}"
+  echo "Enabling $c"
+  cybr::clone_or_update "$c" "$repo"
+  cybr::install_deps "$c"
+  cybr::deploy "$c"
+  cybr::manifest_set "$c" "$(cybr::head_sha "$c")"
+  echo "  done. Override: $(cybr::override_path "$c")"
+}
+
+cybr::cmd_disable() { # component
+  local c="$1" ov target entry
+  target="$(cybr::target_dir "$c")"; entry="$(cybr::reg_get "$c" entry)"
+  ov="$(cybr::override_path "$c")"
+  [[ -n "$ov" && -e "$ov" ]] && mv "$ov" "$ov.disabled-$(cybr::head_sha "$c" 2>/dev/null || echo old)" 2>/dev/null || true
+  [[ -n "$entry" && -e "$target/$entry" ]] && rm -f "$target/$entry"
+  cybr::manifest_del "$c"
+  echo "Disabled $c (loader removed; override archived; cache left intact)"
+}
+
+cybr::cmd_sync() {
+  local c sha
+  [[ -f "$CYBR_MANIFEST" ]] || { echo "Nothing enabled."; return 0; }
+  while IFS= read -r c; do
+    sha="$(cybr::manifest_get "$c")"
+    echo "Syncing $c @ $sha"
+    cybr::clone_or_update "$c" "${CYBR_TEST_REMOTE:-$(cybr::reg_get "$c" repo)}"
+    [[ -n "$sha" ]] && cybr::checkout "$c" "$sha"
+    cybr::install_deps "$c"
+    cybr::deploy "$c"
+  done < <(grep -oE '^[^ =]+' "$CYBR_MANIFEST")
+}
+
 # Stubs replaced in later tasks.
-for _c in enable disable sync update status diff; do
+for _c in update status diff; do
   eval "cybr::cmd_$_c() { echo 'not implemented' >&2; return 1; }"
 done
 unset _c

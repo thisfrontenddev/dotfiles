@@ -122,6 +122,31 @@ assert_eq "walls is now a symlink (not nested)" "$SF/walls" "$(readlink "$ST/wal
 assert_eq "no nested walls/walls symlink" "" "$(readlink "$ST/walls/walls" 2>/dev/null)"
 assert_eq "user walls backed up" "mine" "$(cat "$ST/walls.pre-cybr.bak/old.png")"
 
+echo "== Task 5: enable/disable/sync =="
+# Mock the package manager so no real installs happen: record requested pkgs.
+export CYBR_PM_LOG="$TMP/pm.log"; : > "$CYBR_PM_LOG"
+cybr::pm_install() { printf '%s\n' "$@" >> "$CYBR_PM_LOG"; }   # override real impl
+cybr::pm_missing() { printf '%s\n' "$@"; }                     # pretend all missing
+
+# Point enable at the local fake remote instead of the real upstream.
+export CYBR_TEST_REMOTE="file://$FAKE"
+
+cybr::manifest_set cybr-hyprland "$SHA1"
+assert_eq "manifest_set writes sha" 'cybr-hyprland = "'"$SHA1"'"' "$(grep '^cybr-hyprland' "$CYBR_MANIFEST")"
+cybr::manifest_set cybr-hyprland "newsha"
+assert_eq "manifest_set updates in place (no dup)" "1" "$(grep -c '^cybr-hyprland' "$CYBR_MANIFEST")"
+cybr::manifest_del cybr-hyprland
+assert_eq "manifest_del removes entry" "0" "$(grep -c '^cybr-hyprland' "$CYBR_MANIFEST" 2>/dev/null || echo 0)"
+
+# enable installs declared deps (mocked) and records the manifest entry
+cybr::cmd_enable cybr-waybar >/dev/null 2>&1 || true
+assert_contains "enable requested waybar dep" "$(cat "$CYBR_PM_LOG")" "playerctl"
+assert_eq "enable recorded in manifest" "1" "$(grep -c '^cybr-waybar' "$CYBR_MANIFEST")"
+
+# disable archives override + drops manifest entry
+cybr::cmd_disable cybr-waybar >/dev/null 2>&1 || true
+assert_eq "disable dropped manifest entry" "0" "$(grep -c '^cybr-waybar' "$CYBR_MANIFEST" 2>/dev/null || echo 0)"
+
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [[ $FAIL -eq 0 ]]
