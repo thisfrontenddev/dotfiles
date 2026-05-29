@@ -1,28 +1,32 @@
 #!/usr/bin/env bash
-# cybr-sync — clone (if missing) + relink cybr theming components into ~/.config.
-# Selective install: comment/uncomment the sync lines at the bottom.
-# Update a component:  git -C ~/.local/share/cybrdots/<name> pull  &&  cybr-sync
+# cybr-sync — make the cybr theming components you use available locally.
+#
+# For each component: clone it into the gitignored cache (if missing), and
+# recreate any symlinks the integration needs (the symlinks live in ~/.config
+# but are NOT tracked in ~/.cfg, so they must be regenerated on a fresh machine).
+#
+# The component lines at the bottom ARE your manifest + selective install:
+# comment a line out to not use that component.
+#
+# Update a component's upstream:   git -C ~/.local/share/cybrdots/<name> pull
+# Then re-run this script if the update added files you symlink.
 set -euo pipefail
 CACHE="${XDG_DATA_HOME:-$HOME/.local/share}/cybrdots"
 
-# repo_url  target(rel to $HOME)  entry_file(your loader owns this; never symlinked)
-sync() {
-  local repo="$1" target="$HOME/$2" entry="$3"
-  local dir="$CACHE/$(basename "$repo" .git)"
-  [[ -d "$dir/.git" ]] || git clone --depth=1 "$repo" "$dir"
-  mkdir -p "$target"
-  shopt -s nullglob
-  for f in "$dir"/*; do
-    local base; base="$(basename "$f")"
-    [[ "$base" == "$entry" || "$base" == README.md || "$base" == LICENSE ]] && continue
-    local dest="$target/$base"
-    if [[ -L "$dest" ]]; then rm -f "$dest"
-    elif [[ -e "$dest" ]]; then mv "$dest" "$dest.pre-cybr.bak"; fi   # back up real files, never clobber
-    ln -sfn "$f" "$dest"
-  done
-  shopt -u nullglob
+clone() { # name  repo_url
+  local dir="$CACHE/$1"
+  [[ -d "$dir/.git" ]] || git clone --depth=1 "$2" "$dir"
+}
+link() { # src(relative to cache)  dest(absolute)
+  mkdir -p "$(dirname "$2")"
+  ln -sfn "$CACHE/$1" "$2"
 }
 
-# --- your components (this list IS your manifest + selective install) ---
-sync https://github.com/cybrcore/cybr-hyprland.git .config/hypr   hyprland.conf
-sync https://github.com/cybrcore/cybr-waybar.git   .config/waybar config.jsonc
+# ── cybr-hyprland — theme only ───────────────────────────────────────────
+# ~/.config/hypr/hyprland.conf sources <cache>/cybr-hyprland/theme.conf, which
+# internally sources ~/.config/hypr/vars.conf — so vars.conf is symlinked in.
+clone cybr-hyprland https://github.com/cybrcore/cybr-hyprland.git
+link  cybr-hyprland/vars.conf "$HOME/.config/hypr/vars.conf"
+
+# ── cybr-waybar — (pending: enable during the waybar migration) ──────────
+# clone cybr-waybar https://github.com/cybrcore/cybr-waybar.git
