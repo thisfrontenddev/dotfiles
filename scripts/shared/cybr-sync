@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# cybr-sync — clone (if missing) + relink cybr theming components into ~/.config.
+# Selective install: comment/uncomment the sync lines at the bottom.
+# Update a component:  git -C ~/.local/share/cybrdots/<name> pull  &&  cybr-sync
+set -euo pipefail
+CACHE="${XDG_DATA_HOME:-$HOME/.local/share}/cybrdots"
+
+# repo_url  target(rel to $HOME)  entry_file(your loader owns this; never symlinked)
+sync() {
+  local repo="$1" target="$HOME/$2" entry="$3"
+  local dir="$CACHE/$(basename "$repo" .git)"
+  [[ -d "$dir/.git" ]] || git clone --depth=1 "$repo" "$dir"
+  mkdir -p "$target"
+  shopt -s nullglob
+  for f in "$dir"/*; do
+    local base; base="$(basename "$f")"
+    [[ "$base" == "$entry" || "$base" == README.md || "$base" == LICENSE ]] && continue
+    local dest="$target/$base"
+    if [[ -L "$dest" ]]; then rm -f "$dest"
+    elif [[ -e "$dest" ]]; then mv "$dest" "$dest.pre-cybr.bak"; fi   # back up real files, never clobber
+    ln -sfn "$f" "$dest"
+  done
+  shopt -u nullglob
+}
+
+# --- your components (this list IS your manifest + selective install) ---
+sync https://github.com/cybrcore/cybr-hyprland.git .config/hypr   hyprland.conf
+sync https://github.com/cybrcore/cybr-waybar.git   .config/waybar config.jsonc
