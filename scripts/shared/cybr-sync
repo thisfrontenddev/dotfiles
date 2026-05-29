@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # cybr-sync — make the cybr theming components you use available locally.
 #
-# For each component: clone it into the gitignored cache (if missing), and
-# recreate any symlinks the integration needs (the symlinks live in ~/.config
-# but are NOT tracked in ~/.cfg, so they must be regenerated on a fresh machine).
+# For each component: clone it into the gitignored cache (if missing), then set
+# up its integration. Two integration styles are used:
+#   link   — symlink one cache file into place (cherry-pick; e.g. hypr theme-only)
+#   mirror — symlink ALL of a component's files into a target dir (full adopt),
+#            backing up any real file/dir already there (never clobber/nest).
+# These symlinks live under ~/.config but are NOT tracked in ~/.cfg, so they are
+# regenerated here on a fresh machine.
 #
-# The component lines at the bottom ARE your manifest + selective install:
-# comment a line out to not use that component.
-#
-# Update a component's upstream:   git -C ~/.local/share/cybrdots/<name> pull
-# Then re-run this script if the update added files you symlink.
+# The component lines at the bottom ARE your manifest + selective install.
+# Update a component:  git -C ~/.local/share/cybrdots/<name> pull  &&  cybr-sync
 set -euo pipefail
 CACHE="${XDG_DATA_HOME:-$HOME/.local/share}/cybrdots"
 
@@ -21,12 +22,34 @@ link() { # src(relative to cache)  dest(absolute)
   mkdir -p "$(dirname "$2")"
   ln -sfn "$CACHE/$1" "$2"
 }
+mirror() { # name  target_dir(absolute)  [skip_glob ...]
+  local name="$1" target="$2"; shift 2
+  local dir="$CACHE/$name" base dest skip f
+  mkdir -p "$target"
+  shopt -s nullglob
+  for f in "$dir"/*; do
+    base="$(basename "$f")"
+    [[ "$base" == README.md || "$base" == readme.md || "$base" == LICENSE ]] && continue
+    skip=0; for g in "$@"; do [[ "$base" == "$g" ]] && skip=1; done
+    (( skip )) && continue
+    dest="$target/$base"
+    if [[ -L "$dest" ]]; then rm -f "$dest"
+    elif [[ -e "$dest" ]]; then mv "$dest" "$dest.pre-cybr.bak"; fi
+    ln -sfn "$f" "$dest"
+  done
+  shopt -u nullglob
+}
 
 # ── cybr-hyprland — theme only ───────────────────────────────────────────
-# ~/.config/hypr/hyprland.conf sources <cache>/cybr-hyprland/theme.conf, which
-# internally sources ~/.config/hypr/vars.conf — so vars.conf is symlinked in.
+# hyprland.conf (yours) sources <cache>/cybr-hyprland/theme.conf, which sources
+# ~/.config/hypr/vars.conf — so only vars.conf is linked in.
 clone cybr-hyprland https://github.com/cybrcore/cybr-hyprland.git
 link  cybr-hyprland/vars.conf "$HOME/.config/hypr/vars.conf"
 
-# ── cybr-waybar — (pending: enable during the waybar migration) ──────────
-# clone cybr-waybar https://github.com/cybrcore/cybr-waybar.git
+# ── cybr-waybar — full adopt ─────────────────────────────────────────────
+# Use upstream's whole bar (config, modules, style, scripts, svg). Launch with
+# plain `waybar`. Re-add personal modules later as real files (they'll shadow
+# the symlinks). Multi-monitor: uncomment BAR 2 + set "output" in config.jsonc.
+clone  cybr-waybar https://github.com/cybrcore/cybr-waybar.git
+mirror cybr-waybar "$HOME/.config/waybar"
+chmod +x "$CACHE"/cybr-waybar/scripts/* 2>/dev/null || true
