@@ -3,6 +3,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
+source "$HERE/lib.sh"
 PASS=0; FAIL=0
 
 assert_eq() { # desc, expected, actual
@@ -23,6 +24,28 @@ echo "== Task 1: skeleton =="
 out="$(bash "$HERE/cybr" 2>&1)"; rc=$?
 assert_eq "no-args exits non-zero" "1" "$rc"
 assert_contains "no-args prints usage" "$out" "Usage: cybr"
+
+echo "== Task 2: registry + list =="
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+export CYBR_HOME="$TMP" CYBR_CACHE="$TMP/cache" CYBR_MANIFEST="$TMP/manifest.toml"
+# registry stays the real committed one ($CYBR_REGISTRY default)
+
+# value reader
+val="$(cybr::reg_get cybr-hyprland repo)"
+assert_contains "reg_get reads repo url" "$val" "cybr-hyprland"
+val="$(cybr::reg_get cybr-hyprland target)"
+assert_eq "reg_get reads target" ".config/hypr" "$val"
+
+# list with empty manifest
+out="$(cybr::cmd_list)"
+assert_contains "list shows a known component" "$out" "cybr-hyprland"
+assert_contains "list marks not-enabled" "$out" "[ ] cybr-hyprland"
+
+# list after manually enabling in manifest
+mkdir -p "$(dirname "$CYBR_MANIFEST")"
+printf 'cybr-hyprland = "abc123"\n' > "$CYBR_MANIFEST"
+out="$(cybr::cmd_list)"
+assert_contains "list marks enabled" "$out" "[x] cybr-hyprland"
 
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"

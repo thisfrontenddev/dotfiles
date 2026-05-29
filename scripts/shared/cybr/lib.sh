@@ -22,8 +22,35 @@ Usage: cybr <command> [args]
 EOF
 }
 
+# Read a key from a [component] section of the registry TOML.
+cybr::reg_get() { # component, key
+  awk -v sec="$1" -v key="$2" '
+    /^\[/ { inset = ($0 == "[" sec "]") }
+    inset && $0 ~ "^"key"[ \t]*=" {
+      sub(/^[^=]*=[ \t]*/, ""); gsub(/^"|"$/, ""); print; exit
+    }' "$CYBR_REGISTRY"
+}
+
+# List all component section names in registry order.
+cybr::reg_components() {
+  awk '/^\[/ { gsub(/^\[|\]$/, ""); print }' "$CYBR_REGISTRY"
+}
+
+# Is a component enabled (present in manifest)?
+cybr::is_enabled() { # component
+  [[ -f "$CYBR_MANIFEST" ]] && grep -q "^$1[[:space:]]*=" "$CYBR_MANIFEST"
+}
+
+cybr::cmd_list() {
+  local c mark
+  while IFS= read -r c; do
+    if cybr::is_enabled "$c"; then mark="[x]"; else mark="[ ]"; fi
+    printf '%s %s\n' "$mark" "$c"
+  done < <(cybr::reg_components)
+}
+
 # Stubs replaced in later tasks.
-for _c in list enable disable sync update status diff; do
+for _c in enable disable sync update status diff; do
   eval "cybr::cmd_$_c() { echo 'not implemented' >&2; return 1; }"
 done
 unset _c
