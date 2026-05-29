@@ -60,7 +60,8 @@ scripts/
     cybrwall.sh                   # Wallpaper switcher (rofi picker)
     accent-picker.py              # macOS-style press-and-hold accent popup for Wayland
     lib.sh                        # Helpers: distro detect, pkg_install w/ Fedora→Arch mapping
-  arch/                           # Work-in-progress — populated as Arch scripts are written
+  arch/
+    bootstrap.sh                  # Arch bootstrap (shell-focused: fish + starship + default shell)
   macos/
     bootstrap.sh                  # macOS bootstrap (Xcode, Homebrew, defaults, security)
     homebrew.sh                   # Homebrew installer + bundle
@@ -80,13 +81,16 @@ scripts/
 Brewfile                          # macOS Homebrew bundle (CLI tools + casks)
 ```
 
-**Distro dispatch on Linux**: `setup.sh` reads `/etc/os-release` and runs `scripts/fedora/bootstrap.sh` or `scripts/arch/bootstrap.sh`. The Arch tree is incomplete — running setup on a fresh Arch box currently errors out with a clear message until the Arch scripts are added.
+**Distro dispatch on Linux**: `setup.sh` reads `/etc/os-release` and runs `scripts/fedora/bootstrap.sh` or `scripts/arch/bootstrap.sh`. The Arch bootstrap currently covers the shell (fish + starship + default shell); broader parity (fonts, tmux, apps, drivers, hardening) is still pending.
 
 ## Configuration
 
 ```
 .config/
-  zsh/                            # Shell (cross-platform)
+  fish/                           # Shell (cross-platform) — current default
+    conf.d/                       # 00-env, abbreviations, starship, fnm, orbstack
+    functions/                    # dot, convert-images, mktouch, swaymsg, fish_greeting
+  zsh/                            # Shell — kept as a fallback during the fish migration
     .zshenv                       # Entry: XDG vars, startup timing
     .zshrc                        # Sources init.zsh, fastfetch, startup timing
     .zprofile                     # Login-shell (sourced once)
@@ -152,7 +156,9 @@ Nix is intentionally Fedora-only: dnf often ships stale dev-tool versions, so Ni
 
 ## Key aliases
 
-| Alias | Command | Notes |
+On fish these are **abbreviations** (they expand inline as you type); the equivalent zsh aliases remain in `.config/zsh/` as a fallback. Shortcuts with logic (`dot`, `swaymsg`, `convert-images`) are fish functions.
+
+| Shortcut | Expands to | Notes |
 |---|---|---|
 | `dot` | `git --git-dir=$HOME/.cfg/ --work-tree=$HOME` | Dotfiles management |
 | `attach` | `tmux new -A -s personal` | Attach/create tmux session |
@@ -175,6 +181,6 @@ Hardened defaults for all hosts: Ed25519 keys, curve25519 key exchange, ChaCha20
 ## Notes
 
 - All setup scripts are idempotent — safe to run multiple times
-- `secrets.zsh` is gitignored — create at `~/.config/zsh/secrets.zsh` for tokens/keys
+- `secrets.zsh` / `secrets.fish` are untracked — create at `~/.config/zsh/secrets.zsh` or `~/.config/fish/secrets.fish` for tokens/keys
 - `.zshenv` and `.zshrc` in `$HOME` are symlinks to `.config/zsh/`
 - The `dot` alias uses `/usr/bin/git` to avoid Homebrew/Nix git interfering with the bare repo
