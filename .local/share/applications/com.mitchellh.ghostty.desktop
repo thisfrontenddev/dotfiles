@@ -3,7 +3,7 @@ GenericName=com.mitchellh.ghostty
 Name=Ghostty
 Type=Application
 Comment=A terminal emulator
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa ghostty
+Exec=ghostty
 Icon=com.mitchellh.ghostty
 Categories=System;TerminalEmulator;
 Keywords=terminal;tty;pty;
@@ -20,4 +20,4 @@ X-TerminalArgHold=--wait-after-command
 
 [Desktop Action new-window]
 Name=New Window
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa ghostty
+Exec=ghostty
