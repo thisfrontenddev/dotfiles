@@ -3,7 +3,7 @@ GenericName=org.mozilla.firefox
 Version=1.0
 Name=Firefox
 Comment=Browse the Web
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi firefox %u
+Exec=firefox %u
 Icon=firefox
 Terminal=false
 Type=Application
@@ -15,12 +15,12 @@ Actions=new-window;new-private-window;profile-manager-window;
 
 [Desktop Action new-window]
 Name=Open a New Window
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi firefox --new-window %u
+Exec=firefox --new-window %u
 
 [Desktop Action new-private-window]
 Name=Open a New Private Window
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi firefox --private-window %u
+Exec=firefox --private-window %u
 
 [Desktop Action profile-manager-window]
 Name=Open the Profile Manager
-Exec=env DRI_PRIME=pci-0000_11_00_0 __GLX_VENDOR_LIBRARY_NAME=mesa LIBVA_DRIVER_NAME=radeonsi firefox --ProfileManager
+Exec=firefox --ProfileManager
