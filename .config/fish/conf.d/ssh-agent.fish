@@ -10,12 +10,16 @@ end
 set -gx SSH_AUTH_SOCK "$XDG_RUNTIME_DIR/ssh-agent.socket"
 
 # The signing key is passphrase-protected, so the agent is empty after a reboot.
-# On an interactive shell, if the agent has no key loaded yet, offer to add it
-# (one passphrase prompt). Once loaded it persists for the session, so this stops
-# asking. Decline with 'n' (or empty answer skips a single time).
-if status is-interactive; and test -S "$SSH_AUTH_SOCK"; and not ssh-add -l >/dev/null 2>&1; and test -f ~/.ssh/id_ed25519
-    read -P "[ssh] key not loaded — add it for git signing? [Y/n] " -l _ssh_reply
-    if test -z "$_ssh_reply"; or string match -qi y "$_ssh_reply"
-        ssh-add ~/.ssh/id_ed25519
+# If no key is loaded yet, load it pulling the passphrase from gnome-keyring — no
+# prompt. pam_gnome_keyring unlocks the login keyring at SDDM login, so the lookup
+# in ssh-askpass-keyring just works. Store the passphrase once with:
+#   secret-tool store --label="ssh id_ed25519" ssh-key id_ed25519
+if test -S "$SSH_AUTH_SOCK"; and test -f ~/.ssh/id_ed25519; and not ssh-add -l >/dev/null 2>&1
+    if secret-tool lookup ssh-key id_ed25519 >/dev/null 2>&1
+        env SSH_ASKPASS="$HOME/.local/bin/ssh-askpass-keyring" SSH_ASKPASS_REQUIRE=force \
+            ssh-add ~/.ssh/id_ed25519 >/dev/null 2>&1
+    else if status is-interactive
+        echo "[ssh] signing-key passphrase not in keyring yet. Store it once with:"
+        echo '      secret-tool store --label="ssh id_ed25519" ssh-key id_ed25519'
     end
 end

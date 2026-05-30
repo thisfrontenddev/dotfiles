@@ -1,0 +1,7 @@
+#!/bin/sh
+# SSH_ASKPASS helper: hand ssh-add the key passphrase out of gnome-keyring instead
+# of prompting. The passphrase is stored once with:
+#   secret-tool store --label="ssh id_ed25519" ssh-key id_ed25519
+# pam_gnome_keyring unlocks the login keyring at SDDM login, so the lookup is silent.
+# ssh-add passes its prompt text as $1; we ignore it and just emit the secret.
+exec secret-tool lookup ssh-key id_ed25519
