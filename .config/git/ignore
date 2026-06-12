@@ -84,6 +84,9 @@ Pipfile.lock
 *.tar.gz
 *.rar
 
+# Claude local
+**/.claude/settings.local.json
+
 # Shell history
 .zsh_history
 .bash_history
