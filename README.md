@@ -189,7 +189,7 @@ On fish these are **abbreviations** (they expand inline as you type); the equiva
 
 ## SSH config
 
-Hardened defaults for all hosts: Ed25519 keys, curve25519 key exchange, ChaCha20-Poly1305 ciphers, no agent forwarding. See `.ssh/config`.
+`~/.ssh/config` is intentionally not tracked. Keep host-specific SSH config local per machine, especially where other tools manage includes or host entries.
 
 ## Notes
 
