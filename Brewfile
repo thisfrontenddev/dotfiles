@@ -4,6 +4,12 @@
 tap "homebrew/bundle"
 tap "nikitabobko/tap"
 
+def optional_cask?(name)
+  selected = ENV.fetch("BREW_OPTIONAL_CASKS", "").split(/[,\s]+/).reject(&:empty?)
+
+  selected.include?("all") || selected.include?(name)
+end
+
 # ── CLI tools ──
 
 brew "bat"          # cat with syntax highlighting
@@ -12,6 +18,7 @@ brew "cloc"         # Count lines of code
 brew "commitizen"   # Conventional commits
 brew "eza"          # Modern ls
 brew "fastfetch"    # System info
+brew "fish"         # Shell
 brew "ffmpeg"       # Video transcoder
 brew "fnm"          # Node version manager
 brew "fzf"          # Fuzzy finder
@@ -30,9 +37,6 @@ brew "watchman"     # File watcher
 
 # ── Casks ──
 
-# AI
-cask "claude"
-cask "conductor"
 
 # Browsers
 cask "arc"
@@ -42,7 +46,7 @@ cask "google-chrome"
 # Comms
 cask "discord"
 cask "slack"
-cask "whatsapp"
+cask "whatsapp" if optional_cask?("whatsapp")
 
 # Containers
 cask "orbstack"
@@ -57,9 +61,9 @@ cask "font-jetbrains-mono-nerd-font"
 cask "font-space-mono"
 cask "font-space-mono-nerd-font"
 
-# IDE
+# IDE / Agent Harnesses
+cask "conductor"
 cask "cursor"
-cask "visual-studio-code"
 cask "zed"
 
 # Mail
@@ -71,16 +75,16 @@ cask "shottr"       # Screenshot tool
 
 # Notes
 cask "obsidian"
-cask "notion"
+cask "notion" if optional_cask?("notion")
 
 # Project management
-cask "linear-linear"
+cask "linear-linear" if optional_cask?("linear-linear")
 
 # Security
 cask "1password"
 cask "1password-cli"
-cask "little-snitch"
-cask "micro-snitch"
+cask "little-snitch" if optional_cask?("little-snitch")
+cask "micro-snitch" if optional_cask?("micro-snitch")
 
 # Terminals
 cask "alacritty"
@@ -89,14 +93,14 @@ cask "iterm2"
 
 # UI/UX
 cask "figma"
-cask "spline"
+cask "spline" if optional_cask?("spline")
 
 # Spotlight replacement
 cask "raycast"
 
 # Streaming
 cask "keycastr"
-cask "obs"
+cask "obs" if optional_cask?("obs")
 
 # Utilities
 cask "aerospace"

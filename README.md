@@ -148,6 +148,19 @@ Tools are installed through different channels depending on the platform:
 
 Nix is intentionally Fedora-only: dnf often ships stale dev-tool versions, so Nix earns its complexity there. Brew and paru both cover the same tool list cleanly, so adding Nix on top would just be redundancy.
 
+### Optional macOS casks
+
+The macOS Homebrew bootstrap asks about a small set of optional casks before running `brew bundle`: `whatsapp`, `notion`, `little-snitch`, `micro-snitch`, `linear-linear`, `spline`, and `obs`.
+Set `BREW_OPTIONAL_CASKS` to skip the prompts.
+
+Examples:
+
+```bash
+BREW_OPTIONAL_CASKS=whatsapp,notion,obs ./setup.sh
+BREW_OPTIONAL_CASKS=all ./setup.sh
+BREW_OPTIONAL_CASKS="" ./setup.sh
+```
+
 ### Adding a new CLI tool
 
 1. Add to `Brewfile` (macOS uses this)

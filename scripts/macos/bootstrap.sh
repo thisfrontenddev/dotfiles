@@ -29,8 +29,8 @@ if [[ ! -d "$HOME/.cfg" ]]; then
   dot config --local status.showUntrackedFiles no
 fi
 
-# --- Step 4: Zsh symlinks ---
-echo "==> Setting up zsh symlinks..."
+# --- Step 4: Shell config symlinks ---
+echo "==> Setting up shell config symlinks..."
 ln -sf "$HOME/.config/zsh/.zshenv" "$HOME/.zshenv"
 ln -sf "$HOME/.config/zsh/.zshrc" "$HOME/.zshrc"
 
@@ -56,9 +56,37 @@ echo "==> Applying security hardening..."
 bash "$SCRIPTS_DIR/optimize-security.sh"
 
 # --- Step 8: Set default shell ---
-if [[ "$SHELL" != "/bin/zsh" ]]; then
-  chsh -s /bin/zsh
+if command -v brew &>/dev/null; then
+  BREW_BIN="$(command -v brew)"
+elif [[ -x /opt/homebrew/bin/brew ]]; then
+  BREW_BIN="/opt/homebrew/bin/brew"
+elif [[ -x /usr/local/bin/brew ]]; then
+  BREW_BIN="/usr/local/bin/brew"
+else
+  echo "Homebrew was not found after running homebrew.sh"
+  exit 1
+fi
+
+BREW_PREFIX="$("$BREW_BIN" --prefix)"
+FISH_PATH="$BREW_PREFIX/bin/fish"
+
+if [[ ! -x "$FISH_PATH" ]]; then
+  echo "fish was not found at $FISH_PATH after brew bundle install"
+  exit 1
+fi
+
+if ! grep -qxF "$FISH_PATH" /etc/shells; then
+  echo "==> Adding $FISH_PATH to /etc/shells..."
+  echo "$FISH_PATH" | sudo tee -a /etc/shells >/dev/null
+fi
+
+CURRENT_SHELL="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}' || true)"
+CURRENT_SHELL="${CURRENT_SHELL:-${SHELL:-}}"
+
+if [[ "$CURRENT_SHELL" != "$FISH_PATH" ]]; then
+  echo "==> Setting fish as default shell..."
+  chsh -s "$FISH_PATH"
 fi
 
 echo ""
-echo "=== Bootstrap complete! Restart your terminal. ==="
+echo "=== Bootstrap complete! Restart your terminal to start using fish. ==="
