@@ -128,6 +128,24 @@ wallpaper_args=(
     --transition-pos center
 )
 
+# Names of every output the daemon currently knows about, one per line.
+wallpaper_outputs() {
+    "$wallpaper_client" query 2>/dev/null | awk -F': ' '{print $2}'
+}
+
+# True if $1 (an output) is currently displaying image $2.
+output_has_image() {
+    "$wallpaper_client" query 2>/dev/null | grep -F -- " $1:" | grep -qF -- "$2"
+}
+
+apply_to_all_outputs() {
+    (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" "$1") >/dev/null 2>&1 || true
+}
+
+apply_to_output() {
+    (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" --outputs "$1" "$2") >/dev/null 2>&1 || true
+}
+
 restore_wallpaper() {
     if [ ! -s "$encrypted_wallpaper" ] || [ ! -s "$key_file" ]; then
         exit 0
@@ -136,20 +154,39 @@ restore_wallpaper() {
     choose_wallpaper_backend
     ensure_wallpaper_daemon
 
-    wallpaper_error="$(mktemp)"
-    wallpaper_set_status=0
     runtime_image=""
-
-    if runtime_image="$(runtime_wallpaper_from_encrypted "$encrypted_wallpaper")"; then
-        wallpaper_command=("$wallpaper_client" img "${wallpaper_args[@]}" "$runtime_image")
-        (cd "$HOME" && "${wallpaper_command[@]}") 2>"$wallpaper_error" || wallpaper_set_status=$?
-        rm -f -- "$runtime_image"
-    else
-        wallpaper_set_status=1
+    if ! runtime_image="$(runtime_wallpaper_from_encrypted "$encrypted_wallpaper")"; then
+        exit 1
     fi
 
-    rm -f "$wallpaper_error"
-    exit "$wallpaper_set_status"
+    # Paint everything the daemon knows about right now.
+    apply_to_all_outputs "$runtime_image"
+
+    # Then handle the startup race: at Hyprland launch the daemon is usually up
+    # before every monitor has been announced, so the paint above only lands on
+    # whichever output registered first (the OLED comes up later than the IPS
+    # here, leaving it blank). Keep re-applying to any output still missing the
+    # image until all expected monitors have it, or we hit the deadline.
+    expected=0
+    if command -v hyprctl >/dev/null 2>&1; then
+        expected="$(hyprctl monitors 2>/dev/null | grep -c '^Monitor ')" || expected=0
+    fi
+
+    deadline=$(( SECONDS + 8 ))
+    while :; do
+        while IFS= read -r output; do
+            [ -n "$output" ] || continue
+            output_has_image "$output" "$runtime_image" || apply_to_output "$output" "$runtime_image"
+        done < <(wallpaper_outputs)
+
+        have="$("$wallpaper_client" query 2>/dev/null | grep -cF -- "$runtime_image" || true)"
+        if [ "$expected" -gt 0 ] && [ "$have" -ge "$expected" ]; then break; fi
+        if [ "$SECONDS" -ge "$deadline" ]; then break; fi
+        sleep 0.3
+    done
+
+    rm -f -- "$runtime_image"
+    exit 0
 }
 
 if [ "${1:-}" = "--restore" ]; then
