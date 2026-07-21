@@ -128,25 +128,11 @@ wallpaper_args=(
     --transition-pos center
 )
 
-# Names of every output the daemon currently knows about, one per line.
-wallpaper_outputs() {
-    "$wallpaper_client" query 2>/dev/null | awk -F': ' '{print $2}'
-}
-
-# True if $1 (an output) is currently displaying image $2.
-output_has_image() {
-    "$wallpaper_client" query 2>/dev/null | grep -F -- " $1:" | grep -qF -- "$2"
-}
-
-apply_to_all_outputs() {
-    (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" "$1") >/dev/null 2>&1 || true
-}
-
-apply_to_output() {
-    (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" --outputs "$1" "$2") >/dev/null 2>&1 || true
-}
-
+# Paint the decrypted wallpaper. With no output arg it targets every output the
+# daemon currently knows about; with one it targets just that output.
 restore_wallpaper() {
+    target_output="${1:-}"
+
     if [ ! -s "$encrypted_wallpaper" ] || [ ! -s "$key_file" ]; then
         exit 0
     fi
@@ -159,39 +145,29 @@ restore_wallpaper() {
         exit 1
     fi
 
-    # Paint everything the daemon knows about right now.
-    apply_to_all_outputs "$runtime_image"
-
-    # Then handle the startup race: at Hyprland launch the daemon is usually up
-    # before every monitor has been announced, so the paint above only lands on
-    # whichever output registered first (the OLED comes up later than the IPS
-    # here, leaving it blank). Keep re-applying to any output still missing the
-    # image until all expected monitors have it, or we hit the deadline.
-    expected=0
-    if command -v hyprctl >/dev/null 2>&1; then
-        expected="$(hyprctl monitors 2>/dev/null | grep -c '^Monitor ')" || expected=0
+    if [ -n "$target_output" ]; then
+        (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" \
+            --outputs "$target_output" "$runtime_image") >/dev/null 2>&1 || true
+    else
+        (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" \
+            "$runtime_image") >/dev/null 2>&1 || true
     fi
-
-    deadline=$(( SECONDS + 8 ))
-    while :; do
-        while IFS= read -r output; do
-            [ -n "$output" ] || continue
-            output_has_image "$output" "$runtime_image" || apply_to_output "$output" "$runtime_image"
-        done < <(wallpaper_outputs)
-
-        have="$("$wallpaper_client" query 2>/dev/null | grep -cF -- "$runtime_image" || true)"
-        if [ "$expected" -gt 0 ] && [ "$have" -ge "$expected" ]; then break; fi
-        if [ "$SECONDS" -ge "$deadline" ]; then break; fi
-        sleep 0.3
-    done
 
     rm -f -- "$runtime_image"
     exit 0
 }
 
-if [ "${1:-}" = "--restore" ]; then
-    restore_wallpaper
-fi
+case "${1:-}" in
+    --restore)
+        restore_wallpaper
+        ;;
+    --restore-output)
+        # Paint a single output; used by the Hyprland monitor.added handler so a
+        # screen that appears late (slow init) or is hot-plugged / turned back on
+        # gets the wallpaper without repainting the ones already showing it.
+        restore_wallpaper "${2:-}"
+        ;;
+esac
 
 image="${1:-}"
 

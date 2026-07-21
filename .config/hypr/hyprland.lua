@@ -297,6 +297,18 @@ hl.on("hyprland.start", function()
     hl.exec_cmd(HOME .. "/.local/bin/set-wallpaper --restore")
 end)
 
+-- Wallpaper per-monitor: the daemon only paints outputs it already knows about,
+-- so a screen that comes up after the hyprland.start restore (the OLED inits
+-- slower than the IPS), or one hot-plugged / turned back on later, would be left
+-- blank. Paint each monitor the moment Hyprland announces it — event-driven, no
+-- polling. A single screen just fires once; the startup --restore stays as the
+-- baseline in case the daemon isn't ready for the very first add.
+hl.on("monitor.added", function(mon)
+    if mon and mon.name then
+        hl.exec_cmd(HOME .. "/.local/bin/set-wallpaper --restore-output " .. mon.name)
+    end
+end)
+
 -- ── hyprbars: titlebars ──
 -- Plugin config keys/functions only exist while the plugin is loaded, and
 -- hl.plugin.load() is async — so the plugin is loaded by load-hyprbars.sh
@@ -343,3 +355,4 @@ if barsLoaded then
     -- maximize: fill the workspace (mode=1 keeps gaps/bar; not true fullscreen)
     bar_button(V.gr0, "hyprctl dispatch \"hl.dsp.window.fullscreen({mode=1})\"")
 end
+
