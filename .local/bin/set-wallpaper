@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/set-wallpaper"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/set-wallpaper"
+key_file="$config_dir/wallpaper.key"
+encrypted_wallpaper="$cache_dir/.wallpaper-current.enc"
+
+notify() {
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -a Files "$@"
+    fi
+}
+
+private_dir() {
+    mkdir -p "$1"
+    chmod 700 "$1"
+}
+
+ensure_wallpaper_key() {
+    private_dir "$config_dir"
+
+    if [ ! -s "$key_file" ]; then
+        umask 077
+        openssl rand -hex 32 > "$key_file"
+    fi
+
+    chmod 600 "$key_file"
+}
+
+encrypt_wallpaper_candidate() {
+    private_dir "$cache_dir"
+    ensure_wallpaper_key
+
+    encrypted_candidate="$(mktemp "$cache_dir/.wallpaper-current.enc.XXXXXX")"
+    if openssl enc -aes-256-cbc -pbkdf2 -salt \
+        -in "$image" \
+        -out "$encrypted_candidate" \
+        -pass "file:$key_file" >/dev/null 2>&1; then
+        chmod 600 "$encrypted_candidate"
+        printf '%s\n' "$encrypted_candidate"
+    else
+        rm -f -- "$encrypted_candidate"
+        return 1
+    fi
+}
+
+commit_encrypted_wallpaper() {
+    mv -f -- "$encrypted_candidate" "$encrypted_wallpaper"
+    chmod 600 "$encrypted_wallpaper"
+    rm -f -- "$cache_dir"/current.* "$cache_dir"/.current.* "$cache_dir"/.wallpaper-current
+}
+
+runtime_wallpaper_from_encrypted() {
+    encrypted_source="$1"
+    runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/set-wallpaper"
+    private_dir "$runtime_dir"
+
+    runtime_image="$(mktemp "$runtime_dir/.wallpaper.XXXXXX")"
+
+    if openssl enc -d -aes-256-cbc -pbkdf2 \
+        -in "$encrypted_source" \
+        -out "$runtime_image" \
+        -pass "file:$key_file" >/dev/null 2>&1; then
+        chmod 600 "$runtime_image"
+        printf '%s\n' "$runtime_image"
+    else
+        rm -f -- "$runtime_image"
+        return 1
+    fi
+}
+
+mime_type() {
+    file --brief --mime-type "$1" 2>/dev/null || true
+}
+
+start_wallpaper_daemon() {
+    if command -v systemd-run >/dev/null 2>&1; then
+        if systemd-run --user --quiet --collect \
+            --working-directory="$HOME" \
+            --unit="set-wallpaper-${wallpaper_daemon}-$$" \
+            "$wallpaper_daemon" "${wallpaper_daemon_args[@]}" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
+    (cd "$HOME" && nohup "$wallpaper_daemon" "${wallpaper_daemon_args[@]}" >/dev/null 2>&1 &)
+}
+
+choose_wallpaper_backend() {
+    if command -v swww >/dev/null 2>&1 && command -v swww-daemon >/dev/null 2>&1; then
+        wallpaper_client="swww"
+        wallpaper_daemon="swww-daemon"
+        wallpaper_daemon_args=()
+    elif command -v awww >/dev/null 2>&1 && command -v awww-daemon >/dev/null 2>&1; then
+        wallpaper_client="awww"
+        wallpaper_daemon="awww-daemon"
+        wallpaper_daemon_args=(--no-cache)
+    else
+        notify "Wallpaper not changed" "Install swww or awww first."
+        exit 1
+    fi
+}
+
+ensure_wallpaper_daemon() {
+    if ! (cd "$HOME" && "$wallpaper_client" query >/dev/null 2>&1); then
+        start_wallpaper_daemon
+        for _ in $(seq 1 20); do
+            if (cd "$HOME" && "$wallpaper_client" query >/dev/null 2>&1); then
+                break
+            fi
+            sleep 0.1
+        done
+    fi
+
+    if ! (cd "$HOME" && "$wallpaper_client" query >/dev/null 2>&1); then
+        notify "Wallpaper not changed" "Could not start $wallpaper_daemon."
+        exit 1
+    fi
+}
+
+wallpaper_args=(
+    --resize crop
+    --transition-type grow
+    --transition-duration 0.5
+    --transition-pos center
+)
+
+restore_wallpaper() {
+    if [ ! -s "$encrypted_wallpaper" ] || [ ! -s "$key_file" ]; then
+        exit 0
+    fi
+
+    choose_wallpaper_backend
+    ensure_wallpaper_daemon
+
+    wallpaper_error="$(mktemp)"
+    wallpaper_set_status=0
+    runtime_image=""
+
+    if runtime_image="$(runtime_wallpaper_from_encrypted "$encrypted_wallpaper")"; then
+        wallpaper_command=("$wallpaper_client" img "${wallpaper_args[@]}" "$runtime_image")
+        (cd "$HOME" && "${wallpaper_command[@]}") 2>"$wallpaper_error" || wallpaper_set_status=$?
+        rm -f -- "$runtime_image"
+    else
+        wallpaper_set_status=1
+    fi
+
+    rm -f "$wallpaper_error"
+    exit "$wallpaper_set_status"
+}
+
+if [ "${1:-}" = "--restore" ]; then
+    restore_wallpaper
+fi
+
+image="${1:-}"
+
+if [ -z "$image" ]; then
+    selected_paths="${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}"
+    image="${selected_paths%%$'\n'*}"
+fi
+
+if [ -z "$image" ] || [ ! -f "$image" ]; then
+    notify "Wallpaper not changed" "Select a local image file first."
+    exit 1
+fi
+
+selected_mime_type="$(mime_type "$image")"
+
+case "$selected_mime_type" in
+    image/*)
+        ;;
+    *)
+        notify "Wallpaper not changed" "The selected file is not an image."
+        exit 1
+        ;;
+esac
+
+choose_wallpaper_backend
+
+if ! encrypted_candidate="$(encrypt_wallpaper_candidate)"; then
+    notify "Wallpaper not changed" "Could not create the encrypted wallpaper cache."
+    exit 1
+fi
+
+ensure_wallpaper_daemon
+
+if [ "$wallpaper_client" = "awww" ]; then
+    wallpaper_command=("$wallpaper_client" img "${wallpaper_args[@]}" -)
+    wallpaper_set_status=0
+    wallpaper_error="$(mktemp)"
+
+    if ! (cd "$HOME" && "${wallpaper_command[@]}" < "$image") 2>"$wallpaper_error"; then
+        if runtime_image="$(runtime_wallpaper_from_encrypted "$encrypted_candidate")"; then
+            wallpaper_command=("$wallpaper_client" img "${wallpaper_args[@]}" "$runtime_image")
+            (cd "$HOME" && "${wallpaper_command[@]}") 2>"$wallpaper_error" || wallpaper_set_status=$?
+            rm -f -- "$runtime_image"
+        else
+            wallpaper_set_status=1
+        fi
+    fi
+else
+    wallpaper_command=("$wallpaper_client" img "${wallpaper_args[@]}" "$image")
+    wallpaper_set_status=0
+    wallpaper_error="$(mktemp)"
+    (cd "$HOME" && "${wallpaper_command[@]}") 2>"$wallpaper_error" || wallpaper_set_status=$?
+fi
+
+if [ "$wallpaper_set_status" -eq 0 ]; then
+    commit_encrypted_wallpaper
+    rm -f "$wallpaper_error"
+    notify "Wallpaper changed" "$(basename "$image")"
+else
+    rm -f -- "$encrypted_candidate"
+    error_message="$(sed -n '1p' "$wallpaper_error" | tr -d '\r' | cut -c 1-180)"
+    rm -f "$wallpaper_error"
+
+    if [ -n "$error_message" ]; then
+        notify "Wallpaper not changed" "$error_message"
+    else
+        notify "Wallpaper not changed" "$wallpaper_client could not load the selected image."
+    fi
+    exit 1
+fi
