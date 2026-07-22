@@ -146,6 +146,18 @@ restore_wallpaper() {
     fi
 
     if [ -n "$target_output" ]; then
+        # Hyprland fires monitor.added the moment it adds the output internally,
+        # but the daemon (a separate Wayland client) learns about the re-added
+        # output slightly later via wl_output. Painting before then no-ops and the
+        # screen stays blank — so wait for the daemon to actually list the output,
+        # then paint it. Bounded, and scoped to this one output that the event
+        # named (not a blind poll of every monitor).
+        for _ in $(seq 1 50); do
+            if "$wallpaper_client" query 2>/dev/null | grep -qF -- " $target_output:"; then
+                break
+            fi
+            sleep 0.1
+        done
         (cd "$HOME" && "$wallpaper_client" img "${wallpaper_args[@]}" \
             --outputs "$target_output" "$runtime_image") >/dev/null 2>&1 || true
     else
